@@ -1,0 +1,8 @@
+PyPDF2
+ pygetwindow
+Pillow
+psutil
+pyautogui
+ openai-whisper
+soundfile
+uiautomation

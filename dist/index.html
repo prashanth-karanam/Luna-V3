@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Luna Web OS</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;900&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <!-- CodeMirror Editor -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/theme/material-palenight.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/addon/edit/closebrackets.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/javascript/javascript.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/python/python.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+window.toggleAuth = function(e) {
+  const signupBtn = document.getElementById('signupBtn');
+  const loginBtn = document.getElementById('loginBtn');
+  const sub = document.getElementById('authSubtitle');
+  const un = document.getElementById('loginUsername');
+  const pw = document.getElementById('loginPassword');
+  const target = document.getElementById('toggleAuthMode');
+  
+  if (!signupBtn || !loginBtn || !target) return;
+  
+  const isSignup = !signupBtn.classList.contains('hidden');
+  if (isSignup) {
+    signupBtn.classList.add('hidden');
+    loginBtn.classList.remove('hidden');
+    if (sub) sub.textContent = 'PLEASE AUTHENTICATE';
+    target.textContent = "Don't have an account? Sign up";
+    if (un) un.placeholder = 'Enter Username';
+    if (pw) pw.placeholder = 'Enter Password';
+  } else {
+    loginBtn.classList.add('hidden');
+    signupBtn.classList.remove('hidden');
+    if (sub) sub.textContent = 'CREATE YOUR IDENTITY';
+    target.textContent = "Already have an account? Log in";
+    if (un) un.placeholder = 'Choose a Username (letters/numbers only)';
+    if (pw) pw.placeholder = 'Create a Password';
+  }
+};
+</script>
+
+
+
+  <script type="module" crossorigin src="/assets/index-Bj769qQn.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-CFVo2TES.css">
+</head>
+<body>
+
+  <!-- Dynamic Wallpaper Layer -->
+  <div id="wallpaperLayer" class="wallpaper-layer"></div>
+  <div id="wallpaperLayer2" class="wallpaper-layer" style="opacity:0;"></div>
+
+  <!-- Neural Pulse Background -->
+  <div class="neural-bg" id="neuralBg">
+    <div class="neural-pulse" id="neuralPulse"></div>
+  </div>
+
+  <!-- ══ SLEEPING SCREEN ══════════════════════════════ -->
+  <div id="sleepScreen" class="sleep-screen">
+    <canvas id="particleCanvas"></canvas>
+    <div class="hud-grid">
+      <div class="corner c-tl"></div><div class="corner c-tr"></div>
+      <div class="corner c-bl"></div><div class="corner c-br"></div>
+    </div>
+    <div class="hud-readout top-left"><div class="rl">STATUS</div><div class="rv" id="statusRead">STANDBY</div></div>
+    <div class="hud-readout top-right"><div class="rl">SYSTEM</div><div class="rv">ONLINE</div></div>
+    <div class="hud-readout bot-left"><div class="rl">MODE</div><div class="rv" id="modeRead">VOICE</div></div>
+    <div class="hud-readout bot-right"><div class="rl">TOKENS</div><div class="rv" id="tokenRead">0</div></div>
+
+    <div class="sleep-center">
+      <!-- Holographic Orb Canvas -->
+      <div class="orb-canvas-wrap">
+        <canvas id="sleepOrbCanvas" width="220" height="220"></canvas>
+      </div>
+      <div class="brand-name">LUNA</div>
+      <div class="brand-sub">ARTIFICIAL INTELLIGENCE — v3.0</div>
+      <div class="wake-hint">
+        <span class="hint-dot"></span>
+        Say <strong>"Wake up Luna"</strong> or click to activate
+      </div>
+      <div class="sleep-mode-btns">
+        <button class="mode-pill active" id="sleepVoiceBtn">🎙 Voice Mode</button>
+        <button class="mode-pill" id="sleepChatBtn">💬 Chat Mode</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ VOICE SCREEN ══════════════════════════════════ -->
+  <div id="voiceScreen" class="voice-screen hidden">
+    <div class="vbar">
+      <div class="vbar-brand">
+        <div class="mini-orb-wrap"><div class="mini-ring"></div><div class="mini-orb-core"></div></div>
+        <div>
+          <div class="vbar-name" style="display:flex;align-items:center;gap:8px;">LUNA <span id="voiceTierBadge" onclick="showUpgradePrompt()" style="font-family:'Inter',sans-serif;font-size:0.6rem; padding:2px 8px; background:rgba(0,180,255,0.2); color:var(--blue); border:1px solid var(--blue); border-radius:12px; cursor:pointer; letter-spacing:1px; font-weight:600; box-shadow:0 0 10px rgba(0,180,255,0.2);">FREE</span></div>
+          <div class="vbar-status" id="voiceStatus">Ready</div>
+        </div>
+      </div>
+      <div class="vbar-actions">
+        <button class="icon-btn" id="voiceConsoleBtn" title="Open IDE Console">💻</button>
+        <button class="icon-btn" id="toChatBtn" title="Switch to Chat">💬</button>
+        <button class="icon-btn" id="voiceWallpaperBtn" title="Choose Wallpaper">🖼️</button>
+        <button class="icon-btn" id="voiceSettingsBtn" title="Settings">⚙️</button>
+      </div>
+    </div>
+
+    <div class="voice-center">
+      <div class="orb-canvas-wrap">
+        <canvas id="voiceOrbCanvas" width="260" height="260"></canvas>
+      </div>
+      <div class="voice-greeting" id="voiceGreeting">Initializing…</div>
+      <div id="voiceReply" class="voice-reply-text"></div>
+      <div class="voice-transcript" id="voiceTranscript">Say "Wake up Luna" to begin</div>
+      <div class="waveform" id="waveform">
+        <span></span><span></span><span></span><span></span><span></span>
+        <span></span><span></span><span></span><span></span><span></span>
+      </div>
+      <button class="mic-btn" id="micBtn">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+          <path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/>
+        </svg>
+      </button>
+      <div class="mic-label" id="micLabel">Tap to speak</div>
+    </div>
+  </div>
+
+  <!-- ══ CHAT SCREEN ════════════════════════════════════ -->
+  <div id="chatScreen" class="chat-screen hidden" style="z-index: 1100;">
+    <nav class="top-nav">
+      <div class="nav-left">
+        <div class="mini-orb-wrap"><div class="mini-ring"></div><div class="mini-orb-core"></div></div>
+        <div>
+          <div class="nav-name" style="display:flex;align-items:center;gap:8px;">LUNA <span id="chatTierBadge" onclick="showUpgradePrompt()" style="font-family:'Inter',sans-serif;font-size:0.6rem; padding:2px 8px; background:rgba(0,180,255,0.2); color:var(--blue); border:1px solid var(--blue); border-radius:12px; cursor:pointer; letter-spacing:1px; font-weight:600; box-shadow:0 0 10px rgba(0,180,255,0.2);">FREE</span></div>
+          <div class="nav-status" style="display:flex; gap: 10px;">
+            <span id="chatStatus">● Online</span>
+            <span id="networkIndicator" style="color:var(--green); font-weight:bold;">🟢 Network: UP</span>
+          </div>
+        </div>
+      </div>
+      <div class="nav-right" style="display:flex; align-items:center; gap:8px;">
+        <button class="icon-btn mobile-only" id="mobileMenuBtn" title="Menu" style="display:none;">☰</button>
+        <div id="navButtonsWrap" class="nav-buttons-wrap" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 60vw; align-items: center;">
+          <select id="chatEngineToggle" style="background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: var(--blue); border-radius: 8px; font-size: 0.75rem; padding: 4px 8px; outline: none; margin-right: 5px; cursor: pointer;">
+            <option value="smart">⚡ Smart Mode</option>
+            <option value="performance">🏃 Performance</option>
+            <option value="turbo">🚀 Turbo</option>
+            <option value="casual">💬 Casual Mode</option>
+          </select>
+          <button class="icon-btn" id="consoleBtn" title="Luna IDE Console">💻</button>
+          <button class="icon-btn" id="storageBtn" title="Data Bank">🗄️</button>
+          <button class="icon-btn" id="memoryBtn" title="Luna Memory">🧠</button>
+          <div id="modelHealthDot" title="Model Health: Good" style="width:12px; height:12px; border-radius:50%; background-color:#00ff64; margin-top:12px; margin-left:4px; margin-right:4px; box-shadow: 0 0 10px #00ff64; transition: all 0.3s;"></div>
+          <button class="icon-btn" id="historyBtn" title="Past Conversations">📜</button>
+          <button class="icon-btn" id="toVoiceBtn" title="Voice Mode">🎙️</button>
+          <button class="icon-btn" id="browserLaunchBtn" title="Web Browser">🌐</button>
+          <button class="icon-btn" id="clearBtn" title="Clear Chat">🧹</button>
+          <button class="icon-btn" id="wallpaperBtn" title="Choose Wallpaper">🖼️</button>
+        </div>
+        <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
+      </div>
+    </nav>
+
+    <!-- Workspace Split -->
+    <div class="workspace-split" id="workspaceSplit">
+      
+      <!-- CHAT PANE -->
+      <div class="chat-pane" id="chatPane">
+
+        <div id="messages" class="messages">
+          <div class="chat-orb-area" id="chatOrbArea">
+            <div class="orb-canvas-wrap">
+              <canvas id="chatOrbCanvas" width="120" height="120"></canvas>
+            </div>
+            <div class="chat-orb-greeting" id="chatGreeting">How can I help?</div>
+            <!-- Token Progress Bar -->
+            <div style="width: 80%; max-width: 400px; margin: 10px auto 0; background: rgba(0,0,0,0.4); border: 1px solid rgba(0, 180, 255, 0.2); border-radius: 6px; padding: 4px; display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; color: var(--dim);">
+              <div style="width: 100%; height: 6px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden; position: relative;">
+                <div id="tokenProgressBar" style="height: 100%; width: 0%; background: linear-gradient(90deg, #00ff64, var(--blue)); transition: width 0.3s;"></div>
+              </div>
+              <span id="sessionTokenReadout" style="margin-left: 10px; white-space: nowrap;">0 / 100K</span>
+            </div>
+          </div>
+        </div>
+
+        <div id="typingIndicator" class="typing-indicator hidden">
+          <div class="typing-orb"></div>
+          <div class="typing-dots"><span></span><span></span><span></span></div>
+          <span class="typing-label">Luna is thinking…</span>
+        </div>
+
+        <div class="input-area">
+          <div class="input-card">
+            <div id="imagePreviewBar" style="display:none;padding:6px 10px;background:rgba(0,180,255,0.08);border-bottom:1px solid var(--border);font-size:0.75rem;color:var(--blue);display:flex;align-items:center;gap:8px;">
+              <img id="imageThumb" style="height:36px;border-radius:4px;object-fit:cover;" />
+              <span id="imagePreviewLabel"></span>
+              <button onclick="clearImageAttachment()" style="margin-left:auto;background:none;border:none;color:var(--dim);cursor:pointer;font-size:1rem;">✕</button>
+            </div>
+            <textarea id="msgInput" class="msg-input" placeholder="Ask Luna anything… or paste/drop an image" rows="1"></textarea>
+            <div class="input-actions">
+              <button class="icon-btn" id="imgUploadBtn" title="Attach Image for Luna to analyze">🖼️</button>
+              <input type="file" id="imgUploadInput" accept="image/*" style="display:none;" />
+              <button class="icon-btn" id="chatVoiceBtn" title="Voice Input">🎙</button>
+              <button class="send-btn" id="sendBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                  <line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>
+                </svg>
+                Send
+              </button>
+            </div>
+          </div>
+          <div class="input-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding: 4px 10px 0 10px;">
+            <div id="contextToggles" style="display:flex; gap:15px; font-size: 0.8rem; color: var(--dim);">
+              <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" id="includeIDEContext"> Include IDE Context</label>
+              <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" id="includeVisionContext"> Include Screen Vision</label>
+            </div>
+            <div style="display:flex; gap: 15px;">
+              <span id="tokenCount" title="Total Tokens Used">Tokens: 0</span>
+              <span id="messageCountDisplay" title="Free Tier Daily Limit" style="color: var(--blue);">Messages Today: 0 / 30</span>
+            </div>
+            <span>Luna may make mistakes</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- IDE PANE - Global overlay, works on any screen -->
+  <div class="ide-pane-global hidden" id="idePane">
+    <div class="ide-header">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="font-family: 'Orbitron',sans-serif; font-size:0.7rem; color:var(--blue); letter-spacing:2px;">LUNA IDE</div>
+        <span id="pyStatus" title="Python Runtime Status" style="font-size:0.65rem;padding:2px 7px;border-radius:20px;background:rgba(255,165,0,0.15);color:orange;border:1px solid rgba(255,165,0,0.4);">🐍 Loading...</span>
+        <select id="ideLangSelect" title="Language" style="background:rgba(0,180,255,0.08);border:1px solid var(--border);color:var(--blue);border-radius:6px;font-size:0.7rem;padding:2px 6px;cursor:pointer;outline:none;font-family:inherit;">
+          <option value="javascript">⚡ JavaScript</option>
+          <option value="python">🐍 Python</option>
+          <option value="html">🌐 HTML</option>
+        </select>
+      </div>
+      <div class="nav-right">
+        <button class="icon-btn" id="ideRunBtn" title="Run Code (Python or JS)">▶️</button>
+        <button class="icon-btn" id="ideHelpBtn" title="Ask Luna to debug">🤖</button>
+        <button class="icon-btn" id="ideSaveBtn" title="Save to local">💾</button>
+        <button class="icon-btn" id="ideFullscreenBtn" title="Fullscreen">⧆</button>
+        <button class="icon-btn" id="ideCloseBtn" title="Close">✕</button>
+      </div>
+    </div>
+    <div id="monacoContainer" style="flex: 1; min-height: 0;"></div>
+  </div>
+
+  <!-- BROWSER PANE - Global overlay, works on any screen -->
+  <div class="browser-pane-global hidden" id="browserPane" style="position: absolute; top: 10%; left: 10%; width: 80%; height: 80%; background: rgba(10, 10, 15, 0.95); border: 1px solid var(--border); border-radius: 12px; display: flex; flex-direction: column; z-index: 1000; box-shadow: 0 10px 40px rgba(0,0,0,0.8); backdrop-filter: blur(10px); transition: all 0.3s ease;">
+    <div class="browser-header" style="display:flex; align-items:center; gap: 8px; padding: 10px 16px; background: rgba(0,0,0,0.5); border-bottom: 1px solid var(--border); border-radius: 12px 12px 0 0;">
+      <div style="font-family: 'Orbitron',sans-serif; font-size:0.7rem; color:var(--blue); letter-spacing:2px; margin-right: 10px;">LUNA BROWSER</div>
+      <button class="icon-btn" id="browserBackBtn" title="Back">◀</button>
+      <button class="icon-btn" id="browserForwardBtn" title="Forward">▶</button>
+      <button class="icon-btn" id="browserRefreshBtn" title="Refresh">↻</button>
+      <input type="text" id="browserUrlBar" style="flex: 1; background: rgba(0,180,255,0.05); border: 1px solid var(--border); color: #fff; padding: 6px 12px; border-radius: 20px; font-family: 'Inter', sans-serif; font-size: 0.85rem; outline: none;" placeholder="Search or enter URL...">
+      <button class="icon-btn" id="browserGoBtn" title="Go" style="font-size: 0.8rem; padding: 4px 12px; border-radius: 20px; border: 1px solid var(--blue); color: var(--blue);">GO</button>
+      
+      <div style="width: 1px; height: 20px; background: var(--border); margin: 0 5px;"></div>
+      
+      <button class="icon-btn" id="browserSplitBtn" title="Toggle Split View">◫</button>
+      <button class="icon-btn" id="browserFullscreenBtn" title="Fullscreen">⧆</button>
+      <button class="icon-btn" id="browserCloseBtn" title="Close">✕</button>
+    </div>
+    <div id="browserContent" style="flex: 1; display: flex; border-radius: 0 0 12px 12px; overflow: hidden; background: #fff;">
+      <!-- Webview injected via JS or here -->
+      <webview id="lunaBrowser" src="https://duckduckgo.com" useragent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36" style="flex: 1; border: none; width: 100%; height: 100%;"></webview>
+    </div>
+  </div>
+
+  <!-- ══ HISTORY MODAL ════════════════════════════════ -->
+  <div id="historyModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">📜 Past Conversations</div>
+        <button class="modal-close" id="closeHistory">✕</button>
+      </div>
+      <div class="history-list" id="historyList" style="padding: 10px; max-height: 400px; overflow-y: auto;">
+        <!-- JS populates this -->
+      </div>
+      <div class="modal-footer">
+        <button class="btn-primary" id="newChatBtn">Start New Chat</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ DATA BANK MODAL ════════════════════════════════ -->
+  <div id="storageModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">📁 Luna Data Bank</div>
+        <button class="modal-close" id="closeStorage">✕</button>
+      </div>
+      <div style="padding: 20px;">
+        <div id="dropZone" style="border: 2px dashed var(--border); padding: 40px; text-align: center; border-radius: var(--r-sm); color: var(--dim); cursor: pointer; transition: all 0.2s;">
+           Drag & Drop files here to teach Luna<br><br>
+           <span style="font-size: 0.75rem; color: var(--blue);">Supports .txt, .json, .csv, .js, .py, etc.</span>
+           <input type="file" id="fileUpload" multiple style="display:none;" />
+        </div>
+        <div id="storageList" style="margin-top: 15px; font-size: 0.8rem; color: var(--blue); max-height: 100px; overflow-y: auto;"></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" id="clearStorageBtn" style="color:var(--red); border-color:var(--red);">Wipe Data Bank</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MEMORY MODAL ════════════════════════════════ -->
+  <div id="memoryModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🧠 Luna Long-Term Memory</div>
+        <button class="modal-close" id="closeMemory">✕</button>
+      </div>
+      <div style="padding:16px;">
+        <p style="color:var(--dim);font-size:0.8rem;margin-bottom:12px;">
+          Write anything you want Luna to <strong style="color:var(--blue)">always remember</strong> — your name, current projects, preferences, coding style. She reads this every single message.
+        </p>
+        <div id="memoryList" style="max-height:200px;overflow-y:auto;margin-bottom:12px;"></div>
+        <div style="display:flex;gap:8px;">
+          <input id="memoryInput" type="text" placeholder="e.g. My name is Aryan. I'm building a Web OS." style="flex:1;padding:10px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--r-sm);color:var(--text);font-size:0.85rem;" />
+          <button class="btn-primary" id="addMemoryBtn" style="padding:10px 16px;white-space:nowrap;">+ Add</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" id="clearMemoryItemsBtn" style="color:var(--red);border-color:var(--red);">Clear All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ SETTINGS MODAL ════════════════════════════════ -->
+  <div id="settingsModal" class="modal-overlay hidden" style="z-index:2100;">
+  <div class="modal-card">
+    <div class="modal-header" style="cursor: move;" id="settingsDragHandle">
+      <div class="modal-title">⚙️ &nbsp;Luna Settings</div>
+      <button class="modal-close" id="closeSettings">✕</button>
+    </div>
+
+      <div class="tab-bar">
+        <button class="tab active" data-tab="luna">Luna</button>
+        <button class="tab" data-tab="analytics">Data</button>
+        <button class="tab" data-tab="personality" style="color:#00ffb3;">TARS</button>
+      </div>
+      <!-- Hidden elements so script.js doesn't crash -->
+      <div style="display:none;">
+        <select id="activeEngine"><option value="auto">Auto</option></select>
+        <textarea id="geminiKeys"></textarea>
+        <textarea id="groqKeys"></textarea>
+      </div>
+      <div class="tab-panel" id="tab-primary"></div>
+      <div class="tab-panel" id="tab-backup"></div>
+      
+      <div class="tab-panel" id="tab-personality">
+        <h3 style="color:var(--blue); margin-top:0; font-family:'Orbitron',sans-serif;">PERSONALITY MATRIX</h3>
+        <p style="color:var(--dim); font-size:0.85rem; margin-bottom:15px;">Dynamic behavioral adaptation engine based on TARS.</p>
+        <div style="background:rgba(0,0,0,0.4); border:1px solid var(--border); border-radius:12px; padding:15px; display:flex; justify-content:center; align-items:center;">
+          <div style="width: 280px; height: 280px;">
+            <canvas id="tarsChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <div class="tab-panel active" id="tab-luna">
+        <div class="setting-row">
+          <label style="display:flex; justify-content:space-between; width:100%; align-items:center;">Use Local Model (Ollama)
+            <input type="checkbox" id="localModelToggle" style="accent-color:var(--green); width:20px; height:20px;">
+          </label>
+        </div>
+        <div class="setting-row">
+          <label>Router Model (Fast) <span style="font-size:0.7rem; color:var(--dim); font-weight:normal;">(e.g. qwythos-9b)</span></label>
+          <input type="text" id="routerModelInput" placeholder="qwythos-9b" style="background:var(--bg-900); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:#fff; width:150px; text-align:right;">
+        </div>
+        <div class="setting-row">
+          <label>Heavy Lifter Model (Code) <span style="font-size:0.7rem; color:var(--dim); font-weight:normal;">(e.g. qwythos-9b)</span></label>
+          <input type="text" id="heavyModelInput" placeholder="qwythos-9b" style="background:var(--bg-900); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:#fff; width:150px; text-align:right;">
+        </div>
+        
+          <div class="setting-row" id="localBrowserSetting" style="display: none;">
+          <label>External Browser <span style="font-size:0.7rem; color:var(--dim); font-weight:normal;">(For opening links)</span></label>
+          <select id="externalBrowserSelect" style="background:var(--bg-900); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:#fff; width:150px;">
+             <option value="default">System Default</option>
+             <option value="chrome">Google Chrome</option>
+             <option value="msedge">Microsoft Edge</option>
+             <option value="brave">Brave</option>
+             <option value="firefox">Firefox</option>
+             <option value="opera">Opera</option>
+          </select>
+        </div>
+        <div class="setting-row" id="localHelpDesk" style="display: none; flex-direction: column; align-items: flex-start; background: rgba(0,255,100,0.05); border: 1px solid rgba(0,255,100,0.2); border-radius: 8px; padding: 12px; margin-top: 10px;">
+           <h4 style="color: var(--green); margin: 0 0 8px 0; font-size: 0.9rem;"><i class="fa-solid fa-circle-info"></i> Local Model Help Desk</h4>
+           <ul style="margin: 0; padding-left: 20px; font-size: 0.8rem; color: #ccc; line-height: 1.5;">
+             <li><strong>Vision (Optic Nerve):</strong> Requires <code style="background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px;">minicpm-v</code> model installed in Ollama.</li>
+             <li><strong>Main Brain:</strong> Recommended model is <code style="background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px;">qwythos-9b</code> for stability.</li>
+             <li><strong>OS Permissions:</strong> Using local models grants Luna access to your file system and screen.</li>
+             <li><strong>Fixing Issues:</strong> If Luna is unresponsive, ensure the Ollama app is running in your Windows tray.</li>
+           </ul>
+        </div>
+        <div class="setting-row">
+          <label>Personality</label>
+          <textarea id="systemPrompt" rows="3"></textarea>
+        </div>
+        <div class="setting-row">
+          <label>Voice Engine</label>
+          <select id="voiceEngineSetting" style="background:var(--bg-900); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:#fff; width:150px;">
+            <option value="system">System (Fast)</option>
+          </select>
+        </div>
+        <div class="setting-row">
+          <label>Wake Word</label>
+          <input type="text" id="wakeWord" />
+        </div>
+        <div class="setting-row">
+          <label>Wallpaper Blur</label>
+          <input type="range" id="wpBlurRange" min="0" max="40" value="0" style="width:100%; accent-color:var(--blue);" />
+        </div>
+      </div>
+      <div class="tab-panel" id="tab-analytics">
+        <div class="setting-row">
+          <label style="display:flex; justify-content:space-between; align-items:center;">
+            Remember Past Sessions
+            <input type="checkbox" id="rememberHistory" style="width:auto; transform:scale(1.2);" />
+          </label>
+        </div>
+        <div class="setting-row" style="margin-top:10px;">
+          <label>Token Analytics</label>
+          <div class="info-box">
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Last 24 Hours:</span> <strong id="tokens24h" style="color:var(--green);">0</strong></div>
+            <div style="display:flex; justify-content:space-between; margin-bottom:4px;"><span>Last 7 Days:</span> <strong id="tokens7d" style="color:var(--blue);">0</strong></div>
+            <div style="display:flex; justify-content:space-between;"><span>Total Lifetime:</span> <strong id="tokensAll">0</strong></div>
+          </div>
+        </div>
+          <hr style="border:none; border-top:1px solid rgba(255,255,255,0.1); margin:25px 0;">
+          
+          <h3 style="color:var(--blue); margin-top:0; margin-bottom:15px; font-family:'Orbitron',sans-serif; letter-spacing:1px; font-size:1rem;">ADVANCED: CUSTOM API KEYS</h3>
+          <p style="color:var(--dim); font-size:0.85rem; line-height:1.4; margin-bottom:15px;">Override the built-in Luna cloud with your own API Keys. You will have unlimited usage.</p>
+          
+          <!-- Gemini Custom Key -->
+          <div class="setting-item" style="flex-direction:column; align-items:flex-start; margin-bottom:20px; background:rgba(0,0,0,0.3); padding:15px; border-radius:12px; border:1px solid rgba(0,180,255,0.2);">
+            <div style="display:flex; justify-content:space-between; width:100%; align-items:center; margin-bottom:10px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <img src="https://www.gstatic.com/lamda/images/gemini_sparkle_v002_d4735304ff6292a690345.svg" width="20" height="20">
+                <span class="setting-label" style="font-weight:bold; color:#fff;">Google Gemini API</span>
+              </div>
+            </div>
+            <input type="password" id="geminiKey" placeholder="Enter Gemini API Key..." style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(0,180,255,0.3); background:rgba(0,0,0,0.5); color:#fff; outline:none; margin-bottom:10px;" />
+            <div style="display:flex; gap:10px; width:100%;">
+              <button id="verifyGeminiKeyBtn" class="btn-outline" style="flex:1; padding:8px; border-radius:8px; font-size:0.85rem;">Verify Key</button>
+              <select id="geminiModel" class="setting-select" style="flex:2; display:none;"></select>
+            </div>
+            <div id="geminiKeyStatus" style="font-size:0.8rem; margin-top:8px; color:var(--dim);">Status: Using System Pool</div>
+          </div>
+
+          <!-- Groq Custom Key -->
+          <div class="setting-item" style="flex-direction:column; align-items:flex-start; background:rgba(0,0,0,0.3); padding:15px; border-radius:12px; border:1px solid #f5503633;">
+            <div style="display:flex; justify-content:space-between; width:100%; align-items:center; margin-bottom:10px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <div style="width:20px; height:20px; border-radius:4px; background:#f55036; display:flex; align-items:center; justify-content:center; font-weight:bold; color:#fff; font-size:12px;">G</div>
+                <span class="setting-label" style="font-weight:bold; color:#fff;">Groq API</span>
+              </div>
+            </div>
+            <input type="password" id="groqKey" placeholder="Enter Groq API Key..." style="width:100%; padding:10px; border-radius:8px; border:1px solid rgba(245,80,54,0.3); background:rgba(0,0,0,0.5); color:#fff; outline:none; margin-bottom:10px;" />
+            <div style="display:flex; gap:10px; width:100%;">
+              <button id="verifyGroqKeyBtn" class="btn-outline" style="flex:1; padding:8px; border-radius:8px; font-size:0.85rem; border-color:rgba(245,80,54,0.4); color:#f55036;">Verify Key</button>
+              <select id="groqModel" class="setting-select" style="flex:2; display:none;">
+                <option value="llama-3.1-8b-instant">Llama 3.1 8B</option>
+              </select>
+            </div>
+            <div id="groqKeyStatus" style="font-size:0.8rem; margin-top:8px; color:var(--dim);">Status: Using System Pool</div>
+          </div>
+
+          <!-- Engine Mode moved to nav bar -->
+          <div class="setting-item" style="flex-direction:column; align-items:flex-start; background:rgba(0,0,0,0.3); padding:15px; border-radius:12px; border:1px solid rgba(0,180,255,0.2); margin-bottom:20px;">
+            <label style="display:flex; justify-content:space-between; align-items:center; width:100%; cursor:pointer;">
+              <span style="font-weight:bold; color:#fff;">Show Thoughts (5-Step Plan)</span>
+              <input type="checkbox" id="showThoughtsToggle" checked style="width:auto; transform:scale(1.2);" />
+            </label>
+            <div style="font-size:0.8rem; margin-top:8px; color:var(--dim);">If disabled, Turbo models will act instantly without printing a 5-step reasoning process.</div>
+          </div>
+
+        </div>
+        <button class="btn-outline" id="clearMemoryBtn" style="margin-top:10px; color:var(--red); border-color:var(--red);">⚠️ Wipe Memory & Data</button>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" id="cancelSettings">Cancel</button>
+        <button class="btn-primary" id="saveSettings">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ WALLPAPER PICKER MODAL ════════════════════════════ -->
+  <div id="wallpaperModal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">🖼️ &nbsp;Choose Wallpaper</div>
+        <button class="modal-close" id="closeWallpaper">✕</button>
+      </div>
+      <div class="wp-scroll-area" style="max-height: 50vh; overflow-y: auto; padding-right: 8px;">
+        <div class="wp-section-label">BUILT-IN — NARUTO SERIES</div>
+        <div class="wp-grid" id="wpBuiltinGrid">
+          <!-- JS populates -->
+        </div>
+        <div class="wp-section-label" id="wpStorageLabel" style="display:none; margin-top:15px;">FROM DATA BANK</div>
+        <div class="wp-grid" id="wpStorageGrid">
+          <!-- JS populates -->
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-outline" id="wpResetBtn">Reset to Default</button>
+        <button class="btn-secondary btn-outline" id="closeWallpaper2">Cancel</button>
+        <button class="btn-primary" id="wpApplyBtn">Apply</button><button class="btn-outline" style="margin-left:auto;" onclick="document.getElementById('wpUploadInput').click()">Upload Custom</button>
+        <input type="file" id="wpUploadInput" accept="image/*" style="display:none;" />
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ BROWSER MODAL ════════════════════════════════ -->
+  <div id="browserModal" class="modal-overlay hidden">
+    <div class="modal-card" style="max-width: 800px; width: 95%; height: 80vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="padding: 10px 15px;">
+        <div style="display:flex; align-items:center; gap:10px; width:100%;">
+          <div class="modal-title" style="flex-shrink:0;">🌐 Luna Browser</div>
+          <input type="text" id="browserUrl" style="flex:1; background:var(--bg-900); border:1px solid var(--border); border-radius:15px; padding:8px 12px; color:var(--text); font-size:0.8rem;" placeholder="Enter URL..."/>
+          <button class="btn-primary" id="browserGo" style="padding:8px 14px; font-size:0.8rem;">Go</button>
+          <button class="modal-close" id="closeBrowser">✕</button>
+        </div>
+      </div>
+      <div style="flex:1">
+
+        <iframe id="browserFrame" src="about:blank" style="display:none;"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LOGIN SCREEN ════════════════════════════════ -->
+  <div id="loginScreen" class="sleep-screen hidden" style="z-index: 100000; background: none;">
+    <div class="login-background"></div>
+    
+    <div class="sleep-center">
+      <div class="login-logo"><img src="/assets/logo-C3q6Mr04.png" alt="Luna Logo"/></div>
+      <div class="orb-canvas-wrap">
+        <div class="css-orb">
+          <div class="orb-core"></div>
+          <div class="orb-ring ring-1"></div>
+          <div class="orb-ring ring-2"></div>
+          <div class="orb-ring ring-3"></div>
+        </div>
+      </div>
+      <div class="brand-name">LUNA OS</div>
+      <div class="brand-sub" id="authSubtitle">CREATE YOUR IDENTITY</div>
+      
+      <div style="margin-top: 30px; display:flex; flex-direction:column; gap:14px; width: 320px; margin-left: auto; margin-right: auto;">
+        <input type="text" id="loginUsername" placeholder="Choose a Username (letters/numbers only)" style="padding: 14px; border-radius: 12px; border: 1px solid rgba(0,180,255,0.3); background: rgba(0,0,0,0.5); color: #fff; font-family: 'Inter', sans-serif; font-size: 0.95rem; outline: none; transition: border-color 0.3s;" oninput="this.value = this.value.replace(/[^a-zA-Z0-9]/g, '').toLowerCase()" onfocus="this.style.borderColor='rgba(0,180,255,0.8)'" onblur="this.style.borderColor='rgba(0,180,255,0.3)'" />
+        <input type="password" id="loginPassword" placeholder="Create a Password" style="padding: 14px; border-radius: 12px; border: 1px solid rgba(0,180,255,0.3); background: rgba(0,0,0,0.5); color: #fff; font-family: 'Inter', sans-serif; font-size: 0.95rem; outline: none; transition: border-color 0.3s;" onfocus="this.style.borderColor='rgba(0,180,255,0.8)'" onblur="this.style.borderColor='rgba(0,180,255,0.3)'" />
+        
+        <button id="signupBtn" onclick="window.forceSignup()" class="btn-primary" style="padding: 14px; font-size: 1rem; border-radius: 12px; margin-top: 5px;">Create Account</button>
+        <button id="loginBtn" onclick="window.forceLogin()" class="btn-outline hidden" style="padding: 14px; font-size: 1rem; border-radius: 12px; margin-top: 5px;">Access System</button>
+        
+        <div id="toggleAuthMode" onclick="window.toggleAuth()" style="text-align: center; color: var(--blue); font-size: 0.85rem; cursor: pointer; text-decoration: underline; margin-top: 5px;">Already have an account? Log in</div>
+        
+        <div style="text-align: center; color: var(--dim); font-size: 0.85rem; margin: 5px 0;">— OR —</div>
+        <button id="guestBtn" onclick="window.forceGuestLogin()" class="btn-outline" style="padding: 14px; font-size: 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); color: #fff; border-color: rgba(255,255,255,0.2); backdrop-filter: blur(10px);">Continue as Guest</button>
+        <div id="loginError" style="color: var(--red); font-size: 0.85rem; min-height: 20px; margin-top: 8px; text-align: center;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ LOCAL MODEL WIZARD ════════════════════════════════ -->
+  <div id="localModelSetupScreen" class="sleep-screen hidden" style="z-index: 99999; background: rgba(10,10,15,0.95); backdrop-filter: blur(20px);">
+    <div style="background:linear-gradient(145deg, rgba(20,20,30,0.8), rgba(10,10,15,0.9)); border:1px solid rgba(0,180,255,0.4); border-radius:24px; padding:35px 25px; width:90%; max-width:550px; box-shadow:0 20px 60px rgba(0,0,0,0.8); text-align:center;">
+      <h2 style="color:#fff; margin:0 0 15px 0; font-family:'Orbitron',sans-serif; font-size: 1.8rem; letter-spacing: 1px;">CHOOSE YOUR ENGINE</h2>
+      <p style="color:var(--dim); font-size:0.95rem; line-height:1.5; margin-bottom:20px;">Do you want to run Luna using the fast Cloud APIs (Firebase/Gemini), or run her entirely offline using your own hardware?</p>
+      
+      <div style="display:flex; gap:15px; margin-bottom: 25px;">
+        <button id="useCloudBtn" class="btn-primary" style="flex:1; padding:15px; border-radius:12px; font-size:1rem;" onclick="useLocalModel=false; document.getElementById('localModelSetupScreen').classList.add('hidden'); if(typeof updateTierBadge==='function') updateTierBadge();">☁️ Use Cloud APIs</button>
+        <button id="useLocalBtn" class="btn-outline" style="flex:1; padding:15px; border-radius:12px; font-size:1rem; border-color: rgba(0,255,100,0.4); color: #00ff64;" onclick="document.getElementById('localWizardSteps').classList.remove('hidden');">💻 Run Locally (Ollama)</button>
+      </div>
+
+      <div id="localWizardSteps" class="hidden" style="text-align:left; background:rgba(255,255,255,0.03); padding:20px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); max-height:400px; overflow-y:auto;">
+        <h3 style="color:#00ff64; margin-top:0; margin-bottom:10px;">How does Local AI work?</h3>
+        <p style="color:#ddd; font-size:0.9rem; line-height:1.5;">Running a local AI means your computer is doing all the thinking. No data is sent to the cloud, it's 100% private, and completely free! We use an incredible tool called <b>Ollama</b> that lets you run large language models on your own machine.</p>
+        
+        <h3 style="color:#00ff64; margin-top:15px; margin-bottom:10px;">Setup Instructions (Step-by-Step):</h3>
+        <ol style="color:#ddd; padding-left:20px; font-size:0.9rem; line-height:1.6;">
+          <li><b>Download Ollama:</b> Install <a href="https://ollama.com/download" target="_blank" style="color:var(--blue);">Ollama for Windows</a>.</li>
+          <li><b>Open Command Prompt:</b> Press Win+R, type <code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:4px;">cmd</code>, and press Enter.</li>
+          <li><b>Download the Brain:</b> Paste this command and hit Enter to download qwythos-9b (this may take a few minutes depending on your internet speed):<br><code style="background:#000; padding:8px; border-radius:6px; color:#00ff64; display:block; margin:8px 0; font-family:monospace; user-select:all; border:1px solid rgba(0,255,100,0.2);">ollama run qwythos-9b</code></li>
+          <li><b>Fix Windows Blocking (CORS):</b> If Luna says 'Connection Failed', Windows might be blocking it. Open Command Prompt <b>as Administrator</b> and run:<br><code style="background:#000; padding:8px; border-radius:6px; color:#ff6464; display:block; margin:8px 0; font-family:monospace; user-select:all; border:1px solid rgba(255,100,100,0.2);">setx OLLAMA_ORIGINS "*"</code><br>Then <b>restart your PC</b> or completely close and reopen the Ollama app from the system tray.</li>
+          <li><b>Configure Luna:</b> Inside Luna, go to Settings (Gear Icon) -> Luna AI -> Enable "Use Local Model" and type <code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:4px;">qwythos-9b</code> in the Model Name box.</li>
+        </ol>
+        <button id="confirmLocalBtn" class="btn-outline" style="width:100%; padding:14px; border-radius:12px; margin-top:15px; color:#00ff64; border-color:#00ff64;" onclick="useLocalModel=true; document.getElementById('localModelSetupScreen').classList.add('hidden'); if(typeof updateTierBadge==='function') updateTierBadge();">I've done this, let's connect!</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
+
+  <!-- ══ LOCAL DIAGNOSTICS MODAL ════════════════════════════════ -->
+  <div id="localDiagnosticsModal" class="hidden" style="position:fixed; inset:0; z-index:999999; background:rgba(0,0,0,0.8); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:center;">
+    <div style="background:linear-gradient(145deg, rgba(20,20,30,0.9), rgba(10,10,15,0.95)); border:1px solid rgba(255,100,100,0.4); border-radius:24px; padding:35px 25px; width:90%; max-width:550px; box-shadow:0 20px 60px rgba(0,0,0,0.8); text-align:left; max-height:80vh; overflow-y:auto;">
+      <h2 style="color:#ff6464; margin:0 0 15px 0; font-family:'Orbitron',sans-serif; font-size: 1.8rem; letter-spacing: 1px; text-align:center;">LOCAL AI DIAGNOSTICS</h2>
+      <p style="color:var(--dim); font-size:0.95rem; line-height:1.5; margin-bottom:20px; text-align:center;">Luna couldn't connect to your local Ollama server. Let's fix that!</p>
+      
+      <div style="background:rgba(255,255,255,0.03); padding:20px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); margin-bottom:15px;">
+        <h3 style="color:#fff; margin-top:0; margin-bottom:10px;">1. Is Ollama Running?</h3>
+        <p style="color:#ddd; font-size:0.9rem; line-height:1.5;">Check your system tray (bottom right of Windows) for the Ollama alpaca icon. If it's not there, launch the Ollama app from your start menu.</p>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.03); padding:20px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); margin-bottom:15px;">
+        <h3 style="color:#fff; margin-top:0; margin-bottom:10px;">2. Is the Model Pulled?</h3>
+        <p style="color:#ddd; font-size:0.9rem; line-height:1.5;">You must download the model before Luna can talk to it. Open your terminal and paste this command:</p>
+        <code style="background:#000; padding:8px; border-radius:6px; color:#ff6464; display:block; margin:8px 0; font-family:monospace; user-select:all; border:1px solid rgba(255,100,100,0.2);">ollama pull qwythos-9b</code>
+      </div>
+
+      <div style="background:rgba(255,255,255,0.03); padding:20px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); margin-bottom:15px;">
+        <h3 style="color:#fff; margin-top:0; margin-bottom:10px;">3. Network & CORS</h3>
+        <p style="color:#ddd; font-size:0.9rem; line-height:1.5;">Sometimes your browser blocks the connection for security. To fix this on Windows, open Command Prompt <b>as Administrator</b> and run:</p>
+        <code style="background:#000; padding:8px; border-radius:6px; color:#ff6464; display:block; margin:8px 0; font-family:monospace; user-select:all; border:1px solid rgba(255,100,100,0.2);">setx OLLAMA_ORIGINS "*"</code>
+        <p style="color:#ddd; font-size:0.9rem; margin-top:8px;">Then completely close and restart Ollama from the system tray.</p>
+      </div>
+      
+      <button onclick="document.getElementById('localDiagnosticsModal').classList.add('hidden')" class="btn-primary" style="width:100%; padding:14px; border-radius:12px; margin-top:10px; font-size:1rem; background: rgba(255,100,100,0.2); border-color: #ff6464; color: #ff6464;">Close Diagnostics</button>
+    </div>
+  </div>
+
+  <!-- Firebase module loads second (module scripts are always deferred by the browser) -->
+
+    <!-- PROGRESS ENGINE (STAGE 10) -->
+    <div id="progressEngine" class="hidden absolute bottom-24 right-8 w-80 bg-black/80 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-2xl transition-all duration-300 transform translate-y-10 opacity-0 z-50">
+      <div class="flex items-center gap-3 mb-2">
+        <div class="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></div>
+        <h3 class="text-white text-sm font-medium tracking-wider uppercase">Automation Engine</h3>
+      </div>
+      <p id="progressStatusText" class="text-gray-300 text-xs mb-3 truncate">Idle...</p>
+      <div class="w-full bg-white/5 rounded-full h-1.5 overflow-hidden">
+        <div id="progressEngineBar" class="bg-gradient-to-r from-blue-500 to-cyan-400 h-1.5 rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+      <div id="progressEngineLogs" class="mt-3 space-y-1 max-h-32 overflow-y-auto hidden-scrollbar">
+        <!-- Logs injected here -->
+      </div>
+    </div>
+
+</body>
+</html>
+
+
+

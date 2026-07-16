@@ -1,0 +1,10 @@
+{
+  "commands": [
+    "notepad",
+    "calc",
+    "explorer",
+    "chrome",
+    "firefox",
+    "ffmpeg -i {input} -vf \"scale=640:-1\" {output}"
+  ]
+}

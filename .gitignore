@@ -1,0 +1,6 @@
+node_modules/
+offline_asr/
+archive_tests/
+__pycache__/
+*.pyc
+.env
