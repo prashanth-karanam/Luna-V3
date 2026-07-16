@@ -67,7 +67,7 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
       const jsonFormat = (cfg.showThoughts !== false) 
           ? `{"thought": "your reasoning", "response": "what you want to say to the user", "tool": "TOOL_NAME", "query": "value", "code": "value"}`
           : `{"response": "what you want to say to the user", "tool": "TOOL_NAME", "query": "value", "code": "value"}`;
-      base += `\\n\\n[CAPABILITIES & JSON TOOL FORMAT]\\nYou MUST interact with the system by outputting a strict JSON object. Do not output raw text tags. Format:\\n${jsonFormat}\\nIf you do not need to use a tool, set "tool" to "NONE".\\n`;
+      base += `\\n\\n[CAPABILITIES & JSON TOOL FORMAT]\\nYou MUST interact with the system by outputting ONLY a strict JSON object. Do NOT output any conversational filler, explanations, or raw text before or after the JSON. Format:\\n${jsonFormat}\\nIf you do not need to use a tool, set "tool" to "NONE".\\n`;
   }
 
   if (needsVision) {
