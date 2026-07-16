@@ -64,7 +64,10 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
   const needsFileSystem = /(file|dir|folder|terminal|cmd|command|run)/i.test(userQuery);
   
   if (needsVision || needsDesktop || needsSearch || needsFileSystem || currentMode === 'VOICE') {
-      base += `\n\n[CAPABILITIES & JSON TOOL FORMAT]\nYou MUST interact with the system by outputting a strict JSON object. Do not output raw text tags. Format:\n{"thought": "your reasoning", "response": "what you want to say to the user", "tool": "TOOL_NAME", "query": "value", "code": "value"}\nIf you do not need to use a tool, set "tool" to "NONE".\n`;
+      const jsonFormat = (cfg.showThoughts !== false) 
+          ? `{"thought": "your reasoning", "response": "what you want to say to the user", "tool": "TOOL_NAME", "query": "value", "code": "value"}`
+          : `{"response": "what you want to say to the user", "tool": "TOOL_NAME", "query": "value", "code": "value"}`;
+      base += `\\n\\n[CAPABILITIES & JSON TOOL FORMAT]\\nYou MUST interact with the system by outputting a strict JSON object. Do not output raw text tags. Format:\\n${jsonFormat}\\nIf you do not need to use a tool, set "tool" to "NONE".\\n`;
   }
 
   if (needsVision) {
@@ -79,22 +82,15 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
       base += `
 - WEB SEARCHING:
   You have two search tools. 
-  1. SILENT_SEARCH (Google Grounded / DDG): Fast and invisible. Use this FIRST for ALL factual questions, news, LIVE SPORTS SCORES, and weather. Format: {"thought": "searching silently", "tool": "SILENT_SEARCH", "query": "your search term"}
-  2. WEB_SEARCH (Browser): Physically opens the user's browser to scrape Google. ONLY use this as a FALLBACK if SILENT_SEARCH fails to give you the exact live sports score or weather data, OR if the user explicitly asks you to open the browser. Format: {"thought": "opening browser", "tool": "WEB_SEARCH", "query": "your search term"}
-  You MUST use this JSON format to go to a url: {"thought": "going", "tool": "WEB_GO", "query": "https://url.com"}
-  You MUST use this JSON format to read a page: {"thought": "reading", "tool": "WEB_READ"}`;
+  1. SILENT_SEARCH (Google Grounded / DDG): Fast and invisible. Use this FIRST for ALL factual questions, news, LIVE SPORTS SCORES, and weather. Format: ${cfg.showThoughts !== false ? '{"thought": "searching silently", "tool": "SILENT_SEARCH", "query": "your search term"}' : '{"tool": "SILENT_SEARCH", "query": "your search term"}'}
+  2. WEB_SEARCH (Browser): Physically opens the user's browser to scrape Google. ONLY use this as a FALLBACK if SILENT_SEARCH fails to give you the exact live sports score or weather data, OR if the user explicitly asks you to open the browser. Format: ${cfg.showThoughts !== false ? '{"thought": "opening browser", "tool": "WEB_SEARCH", "query": "your search term"}' : '{"tool": "WEB_SEARCH", "query": "your search term"}'}
+  You MUST use this JSON format to go to a url: ${cfg.showThoughts !== false ? '{"thought": "going", "tool": "WEB_GO", "query": "https://url.com"}' : '{"tool": "WEB_GO", "query": "https://url.com"}'}
+  You MUST use this JSON format to read a page: ${cfg.showThoughts !== false ? '{"thought": "reading", "tool": "WEB_READ"}' : '{"tool": "WEB_READ"}'}`;
   }
 
   if (needsDesktop) {
       base += `
 - DESKTOP AUTOMATION & MESSAGING:
-  For Python, use: {"thought": "coding", "tool": "EXECUTE_PYTHON", "code": "..."}
-  For Messaging, use: {"thought": "messaging", "tool": "SEND_MESSAGE", "query": "platform|receiver|message"}
-  * SEND_MESSAGE supports: whatsapp, telegram, instagram, signal, discord, messenger. It uses PyAutoGUI to open the desktop app and send it automatically!
-  
-  AVAILABLE FUNCTIONS (luna_tools):
-  * luna_tools.open_app('App Name') - Opens ANY installed app by name. This is fire-and-forget: call it ONCE and trust it worked. Do NOT try to verify if the app opened. Do NOT use tab_and_check_until after open_app. Examples: open_app('Microsoft Edge'), open_app('Chrome'), open_app('Notepad'), open_app('Opera')
-  * luna_tools.open_url('url', browser=None) - Safely opens a URL in the default browser, or a specific browser if named (e.g. browser='opera').
   * luna_tools.open_path('C:/path/to/file') - Opens a file or folder directly.
   * luna_tools.type_text('text', press_enter=True) - Types text, optionally presses Enter.
   * luna_tools.press('enter') - Presses a single key (enter, tab, escape, etc).
