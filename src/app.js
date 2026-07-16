@@ -765,7 +765,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
         const visionPrompt = "SYSTEM DIRECTIVE: You are a pure optical character and scene recognition module. Your ONLY job is to describe EXACTLY what is in the attached image in supreme detail. List all text, UI elements, structure, and relevant context. Do NOT answer the user's prompt. Do NOT apologize. Do NOT say you are an AI. Just output the raw visual data.";
         try {
             // This call consumes the attachedImageBase64 and clears it
-            const visionDesc = await callGemini("Extract all visual data from the attached image. Output ONLY the description.", visionPrompt, state.geminiIdx, 'gemini-2.5-flash');
+            const visionDesc = await callCloudAPI("Extract all visual data from the attached image. Output ONLY the description.", visionPrompt, state.geminiIdx, 'gpt-4o-mini');
             
             // Append the perfectly extracted text to the user's prompt for Qwythos
             userText += `\n\n[SYSTEM VISION MODULE CAPTURE]:\n${visionDesc}\n\n[CRITICAL INSTRUCTION FOR QWYTHOS]: The above is a raw text transcription of the user's screen/image provided by a vision module. IGNORE any text where the module claims it is an AI or cannot help. Treat the visual data as your own eyes, and answer my original request!`;
@@ -776,7 +776,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
 
     let reply = '';
     console.log('[LUNA-DEBUG] Dispatching to activeEngine:', activeEngine);
-    if (activeEngine === 'gemini' && cfg.geminiKey) { console.log('[LUNA-DEBUG] Calling callGemini...'); reply = await callCloudAPI(userText, sysPrompt, state.geminiIdx); }
+    if (activeEngine === 'gemini' && cfg.geminiKey) { console.log('[LUNA-DEBUG] Calling Cloud API...'); reply = await callCloudAPI(userText, sysPrompt, state.geminiIdx); }
     else if (activeEngine === 'groq') {
       // Sanitize messages to prevent Groq API crashes
       let messages = [{ role: 'system', content: sysPrompt }];
@@ -800,7 +800,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
 
       console.log('[LUNA-DEBUG] Sending to Groq...'); reply = await callCloudAPI(userText, sysPrompt, state.geminiIdx); 
     }
-    else if (cfg.geminiKey) { console.log('[LUNA-DEBUG] Fallback to callGemini...'); reply = await callCloudAPI(userText, sysPrompt, state.geminiIdx); }
+    else if (cfg.geminiKey) { console.log('[LUNA-DEBUG] Fallback to Cloud API...'); reply = await callCloudAPI(userText, sysPrompt, state.geminiIdx); }
     else reply = '⚠️ APIs not configured.';
     console.log('[LUNA-DEBUG] AI reply received. Length:', (reply||'').length, 'Preview:', (reply||'').substring(0, 200));
     
