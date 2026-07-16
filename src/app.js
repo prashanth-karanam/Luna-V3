@@ -1315,19 +1315,22 @@ if ($('ideLangSelect')) $('ideLangSelect').addEventListener('change', () => {
   });
 }
 
+
 async function callOllama(userText, sysPrompt = null) {
-  // Use passed sysPrompt from callAI, or build a basic one as fallback
-  if (!sysPrompt) {
-    sysPrompt = getSystemPrompt(userText.toLowerCase());
-  }
+  // Forcefully truncate sysPrompt for local models to prevent hallucinations (small models crash on the massive system prompt)
+  sysPrompt = "You are Luna, a helpful AI assistant. Answer accurately and concisely. Output your final response in plain text.";
 
   let messages = [{ role: 'system', content: sysPrompt }];
   let recentHistory = getCleanedHistory().slice(-state.maxContext);
+  
+  const activeModel = attachedImageBase64 ? 'minicpm-v:latest' : (cfg.optMode || 'qwythos-9b:latest');
+  
   for (let msg of recentHistory) {
     if (msg.role === 'user') {
       let content = msg.text;
       let messageObj = { role: 'user', content: content };
-      if (msg === recentHistory[recentHistory.length - 1] && attachedImageBase64) {
+      // ONLY attach images if the model is minicpm-v, otherwise small models will crash or output [object Object]
+      if (msg === recentHistory[recentHistory.length - 1] && attachedImageBase64 && activeModel.includes('minicpm-v')) {
          messageObj.images = [attachedImageBase64]; 
       }
       messages.push(messageObj);
