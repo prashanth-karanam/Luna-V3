@@ -3215,8 +3215,6 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
         
         if (parsed.tool === "EXECUTE_PYTHON" && parsed.code) {
             reconstructed += `[EXECUTE_PYTHON]\n${parsed.code}\n[/EXECUTE_PYTHON]`;
-        } else if (parsed.tool_code) {
-            reconstructed += `[EXECUTE_PYTHON]\n${parsed.tool_code}\n[/EXECUTE_PYTHON]`;
         } else if (parsed.tool && parsed.tool !== "NONE") {
             reconstructed += `[${parsed.tool}${parsed.query ? ':' + parsed.query : ''}]`;
         } else if (!parsed.thought && !parsed.response && !parsed.tool) {
