@@ -194,8 +194,9 @@ def _send_instagram(receiver: str, message: str) -> str:
     time.sleep(1.0) # Wait for modal to pop up
 
     # 1. Type the receiver's exact username into the auto-focused search bar
-    _paste_text(receiver)
-    time.sleep(2.5)  # Wait for search results
+    # We must use typewrite instead of paste here, otherwise React's onChange event doesn't fire and search results don't load!
+    pyautogui.typewrite(receiver, interval=0.05)
+    time.sleep(3.5)  # Wait for search results
     
     # 2. Tab twice to select the top user in the list
     for _ in range(2):
