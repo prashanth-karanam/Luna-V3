@@ -726,7 +726,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
   // ZERO-LATENCY HYBRID ROUTER
   const actionRegex = /\b(search|open|app|click|type|file|dir|folder|cmd|run|web|google|find|who|what|when|where|why|how|news|latest|score|match|weather|download|install)\b/i;
   let useGemini = false;
-  if (actionRegex.test(lowerQuery) && cfg.geminiKey) {
+  if ((actionRegex.test(lowerQuery) || depth > 0) && cfg.geminiKey) {
       useGemini = true;
       console.log('[LUNA-DEBUG] Regex Router: Action detected. Routing to Gemini.');
   } else {
