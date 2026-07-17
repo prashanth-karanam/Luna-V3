@@ -60,8 +60,8 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
 
   const cbVision = document.getElementById('includeVisionContext');
   const needsVision = cbVision ? cbVision.checked : false;
-  const needsDesktop = /(app|open|click|type|python|desktop|automate|control)/i.test(userQuery);
-  const needsSearch = /(search|web|google|find out|who|what is|when|where)/i.test(userQuery);
+  const needsDesktop = /\b(app|open|click|type|python|desktop|automate|control)\b/i.test(userQuery);
+  const needsSearch = /\b(search|web|google|find out|who|what|when|where|why|how|news|latest|score|match|weather)\b/i.test(userQuery);
   const needsFileSystem = /(file|dir|folder|terminal|cmd|command|run)/i.test(userQuery);
   
   if (needsVision || needsDesktop || needsSearch || needsFileSystem || currentMode === 'VOICE') {
@@ -721,7 +721,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
   } catch(e) { console.log('[LUNA-DEBUG] web_automation error:', e); }
   
   // ZERO-LATENCY HYBRID ROUTER
-  const actionRegex = /(search|open|app|click|type|file|dir|folder|cmd|run|web|google|find|who|what is|when|where|download|install)/i;
+  const actionRegex = /\b(search|open|app|click|type|file|dir|folder|cmd|run|web|google|find|who|what|when|where|why|how|news|latest|score|match|weather|download|install)\b/i;
   let useGemini = false;
   if (actionRegex.test(lowerQuery) && cfg.geminiKey) {
       useGemini = true;
