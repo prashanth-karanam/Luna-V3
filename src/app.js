@@ -92,7 +92,9 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
   if (needsDesktop) {
       base += `
 - DESKTOP AUTOMATION & MESSAGING:
+  * For Messaging (WhatsApp, Instagram, Telegram, Discord, Messenger), ALWAYS use: ${cfg.showThoughts !== false ? '{"thought": "sending message", "tool": "SEND_MESSAGE", "query": "instagram|username|hello"}' : '{"tool": "SEND_MESSAGE", "query": "instagram|username|hello"}'}
   * luna_tools.open_path('C:/path/to/file') - Opens a file or folder directly.
+
   * luna_tools.type_text('text', press_enter=True) - Types text, optionally presses Enter.
   * luna_tools.press('enter') - Presses a single key (enter, tab, escape, etc).
   * luna_tools.hotkey('ctrl', 'c') - Presses a key combination.
