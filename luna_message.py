@@ -164,44 +164,60 @@ def _send_discord(receiver: str, message: str) -> str:
 
 
 def _send_instagram(receiver: str, message: str) -> str:
-    _require_pyautogui()
-
+    # GHOST BROWSER ARCHITECTURE (Playwright)
+    try:
+        from playwright.sync_api import sync_playwright
+    except ImportError:
+        return "Playwright not installed. Run: pip install playwright"
+        
+    user_data_dir = _base_dir() / "config" / "ghost_profile"
+    
     # If the receiver was resolved to a direct Instagram URL from contacts.json
     if receiver.startswith("http"):
-        if not _open_browser_url(receiver):
-            return "Could not open Instagram in browser."
-        time.sleep(2.5)  # wait for chat to load
-        _paste_text(message)
-        time.sleep(0.2)
-        pyautogui.press("enter")
-        time.sleep(0.3)
-        return f"Message sent via direct URL to {receiver}."
-
-    # Instagram's "New Message" modal search is bugged for anonymous users.
-    # So we bypass the inbox entirely, go straight to their profile, and use JS injection to click the "Message" button!
-    profile_url = f"https://www.instagram.com/{receiver}/"
-    if not _open_browser_url(profile_url):
-        return "Could not open Instagram profile in browser."
-    
-    time.sleep(4.5)  # Wait for profile page to fully load
-
-    # INJECTION: Click the "Message" button on their profile page
-    pyautogui.hotkey('ctrl', 'l')  # Focus URL bar
-    time.sleep(0.2)
-    pyautogui.typewrite("javascript:")
-    _paste_text("(function(){ let b = Array.from(document.querySelectorAll('div[role="button"], button, a')).find(e => e.textContent === 'Message'); if(b) b.click(); })();")
-    time.sleep(0.2)
-    pyautogui.press("enter")
-    
-    time.sleep(3.5)  # Wait for the chat window to open and initialize
-    
-    # Type message and hit enter
-    _paste_text(message)
-    time.sleep(0.2)
-    pyautogui.press("enter")
-    
-    return f"Message sent to {receiver} via Profile JS Injection automation."
-
+        target_url = receiver
+    else:
+        target_url = f"https://www.instagram.com/{receiver}/"
+        
+    try:
+        with sync_playwright() as p:
+            # Launch invisible browser
+            browser = p.chromium.launch_persistent_context(
+                user_data_dir=str(user_data_dir),
+                headless=True,
+                args=["--disable-blink-features=AutomationControlled"]
+            )
+            page = browser.new_page()
+            
+            try:
+                page.goto(target_url, timeout=20000)
+                
+                # Check for login wall
+                if page.locator("input[name='username']").count() > 0 or page.locator("button:has-text('Log in')").count() > 0:
+                    return "Not logged into Instagram. Run `python luna_message.py login` in your terminal to authenticate."
+                
+                # If we went to a profile, click the Message button
+                if not receiver.startswith("http"):
+                    msg_btn = page.locator("div[role='button']:has-text('Message'), button:has-text('Message'), a:has-text('Message')").first
+                    msg_btn.wait_for(state="visible", timeout=10000)
+                    msg_btn.click()
+                
+                # Wait for chat box
+                chat_box = page.locator("div[contenteditable='true']").first
+                chat_box.wait_for(state="visible", timeout=15000)
+                
+                # Send message
+                chat_box.fill(message)
+                page.keyboard.press("Enter")
+                
+                time.sleep(1.0) # Ensure it fires before closing
+                return f"Message sent to {receiver} via silent Ghost Browser."
+                
+            except Exception as e:
+                return f"Ghost Browser navigation failed: {str(e)}"
+            finally:
+                browser.close()
+    except Exception as e:
+        return f"Playwright failed: {str(e)}"
 def send_message(
     parameters: dict,
     response=None,
@@ -239,3 +255,27 @@ def send_message(
         player.write_log(f"[msg] {result}")
 
     return result
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1 and sys.argv[1] == "login":
+        print("Launching Ghost Browser in headed mode for Instagram login...")
+        try:
+            from playwright.sync_api import sync_playwright
+            user_data_dir = _base_dir() / "config" / "ghost_profile"
+            with sync_playwright() as p:
+                browser = p.chromium.launch_persistent_context(
+                    user_data_dir=str(user_data_dir),
+                    headless=False,
+                    args=["--disable-blink-features=AutomationControlled"]
+                )
+                page = browser.new_page()
+                page.goto("https://www.instagram.com/")
+                print("Please log into Instagram in the browser window.")
+                print("Close the browser window when you are done to save your session.")
+                try:
+                    page.wait_for_event("close", timeout=0)
+                except Exception:
+                    pass
+                print("Session saved. You can now use Luna to send messages silently!")
+        except ImportError:
+            print("Playwright not installed. Run: pip install playwright")
