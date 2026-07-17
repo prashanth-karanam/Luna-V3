@@ -177,11 +177,21 @@ def _send_instagram(receiver: str, message: str) -> str:
         time.sleep(0.3)
         return f"Message sent via direct URL to {receiver}."
 
-    # Otherwise, navigate directly to the New Message modal to bypass UI notifications
+    # Otherwise, open the inbox and use JS injection to perfectly click buttons, ignoring DOM layout shifts
     if not _open_browser_url("https://www.instagram.com/direct/new/"):
         return "Could not open Instagram new message modal in browser."
     
-    time.sleep(3.5)  # Wait for modal to load and search bar to auto-focus
+    time.sleep(3.5)  # Wait for page to load
+
+    # INJECTION 1: Click "Send message" or "New message" button
+    pyautogui.hotkey('ctrl', 'l')  # Focus URL bar
+    time.sleep(0.2)
+    pyautogui.typewrite("javascript:")
+    _paste_text("(function(){ let b = Array.from(document.querySelectorAll('div[role="button"], button')).find(e => e.textContent.includes('Send message') || e.textContent.includes('New message')); if(b) b.click(); })();")
+    time.sleep(0.2)
+    pyautogui.press("enter")
+    
+    time.sleep(1.0) # Wait for modal to pop up
 
     # 1. Type the receiver's exact username into the auto-focused search bar
     _paste_text(receiver)
@@ -196,19 +206,22 @@ def _send_instagram(receiver: str, message: str) -> str:
     pyautogui.press("enter")
     time.sleep(0.5)
 
-    # 4. Tab once to focus the 'Chat' button at the bottom of the modal, and hit enter
-    pyautogui.press("tab")
+    # INJECTION 2: Click "Chat" or "Next" button
+    pyautogui.hotkey('ctrl', 'l')
+    time.sleep(0.2)
+    pyautogui.typewrite("javascript:")
+    _paste_text("(function(){ let b = Array.from(document.querySelectorAll('div[role="button"], button')).find(e => e.textContent === 'Chat' || e.textContent === 'Next'); if(b) b.click(); })();")
     time.sleep(0.2)
     pyautogui.press("enter")
     
-    time.sleep(2.5)  # Wait for chat window to initialize
+    time.sleep(2.0)  # Wait for chat window to initialize
     
-    # 5. Type message and hit enter
+    # 4. Type message and hit enter
     _paste_text(message)
     time.sleep(0.2)
     pyautogui.press("enter")
     
-    return f"Message sent to {receiver} via direct modal automation."
+    return f"Message sent to {receiver} via robust JS Injection automation."
 
 def send_message(
     parameters: dict,
