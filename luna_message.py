@@ -177,52 +177,30 @@ def _send_instagram(receiver: str, message: str) -> str:
         time.sleep(0.3)
         return f"Message sent via direct URL to {receiver}."
 
-    # Otherwise, open the inbox and use JS injection to perfectly click buttons, ignoring DOM layout shifts
-    if not _open_browser_url("https://www.instagram.com/direct/new/"):
-        return "Could not open Instagram new message modal in browser."
+    # Instagram's "New Message" modal search is bugged for anonymous users.
+    # So we bypass the inbox entirely, go straight to their profile, and use JS injection to click the "Message" button!
+    profile_url = f"https://www.instagram.com/{receiver}/"
+    if not _open_browser_url(profile_url):
+        return "Could not open Instagram profile in browser."
     
-    time.sleep(3.5)  # Wait for page to load
+    time.sleep(4.5)  # Wait for profile page to fully load
 
-    # INJECTION 1: Click "Send message" or "New message" button
+    # INJECTION: Click the "Message" button on their profile page
     pyautogui.hotkey('ctrl', 'l')  # Focus URL bar
     time.sleep(0.2)
     pyautogui.typewrite("javascript:")
-    _paste_text("(function(){ let b = Array.from(document.querySelectorAll('div[role="button"], button')).find(e => e.textContent.includes('Send message') || e.textContent.includes('New message')); if(b) b.click(); })();")
+    _paste_text("(function(){ let b = Array.from(document.querySelectorAll('div[role="button"], button, a')).find(e => e.textContent === 'Message'); if(b) b.click(); })();")
     time.sleep(0.2)
     pyautogui.press("enter")
     
-    time.sleep(1.0) # Wait for modal to pop up
-
-    # 1. Type the receiver's exact username into the auto-focused search bar
-    # We must use typewrite instead of paste here, otherwise React's onChange event doesn't fire and search results don't load!
-    pyautogui.typewrite(receiver, interval=0.05)
-    time.sleep(3.5)  # Wait for search results
+    time.sleep(3.5)  # Wait for the chat window to open and initialize
     
-    # 2. Tab twice to select the top user in the list
-    for _ in range(2):
-        pyautogui.press("tab")
-        time.sleep(0.2)
-        
-    # 3. Hit enter to toggle the checkbox for this user
-    pyautogui.press("enter")
-    time.sleep(0.5)
-
-    # INJECTION 2: Click "Chat" or "Next" button
-    pyautogui.hotkey('ctrl', 'l')
-    time.sleep(0.2)
-    pyautogui.typewrite("javascript:")
-    _paste_text("(function(){ let b = Array.from(document.querySelectorAll('div[role="button"], button')).find(e => e.textContent === 'Chat' || e.textContent === 'Next'); if(b) b.click(); })();")
-    time.sleep(0.2)
-    pyautogui.press("enter")
-    
-    time.sleep(2.0)  # Wait for chat window to initialize
-    
-    # 4. Type message and hit enter
+    # Type message and hit enter
     _paste_text(message)
     time.sleep(0.2)
     pyautogui.press("enter")
     
-    return f"Message sent to {receiver} via robust JS Injection automation."
+    return f"Message sent to {receiver} via Profile JS Injection automation."
 
 def send_message(
     parameters: dict,
