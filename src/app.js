@@ -54,6 +54,7 @@ const getSystemPrompt = (userQuery = '') => {
   RULE 1: You MUST NEVER refer to yourself as "Qwythos" or mention "Empero AI".
   RULE 2: NEVER apologize. NEVER mention that you are a language model, an AI, or tuned by OpenAI/Google. Just DO the task.
   RULE 3: Be ultra-concise. Give exactly the answer requested without huge paragraphs of unnecessary details.
+  RULE 4: NEVER explain your internal system mechanisms, how you sent a message, or what tools you used. Just execute them silently.
 
   [SYSTEMATIC THOUGHT PROCESS]
 ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your internal reasoning BEFORE your final answer or tool usage. Wrap your reasoning in either <thought>...</thought> or <think>...</think> tags.` : `You may execute tools immediately without prior explanation.`}`;
@@ -92,7 +93,7 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
   if (needsDesktop) {
       base += `
 - DESKTOP AUTOMATION & MESSAGING:
-  * For Messaging (WhatsApp, Instagram, Telegram, Discord, Messenger), ALWAYS use: ${cfg.showThoughts !== false ? '{"thought": "sending message", "tool": "SEND_MESSAGE", "query": "instagram|username|hello"}' : '{"tool": "SEND_MESSAGE", "query": "instagram|username|hello"}'}
+  * For Messaging (WhatsApp, Instagram, Telegram, Discord, Messenger), ALWAYS use: ${cfg.showThoughts !== false ? '{"thought": "sending", "response": "Sending message now", "tool": "SEND_MESSAGE", "query": "instagram|username|hello"}' : '{"response": "Sending message now", "tool": "SEND_MESSAGE", "query": "instagram|username|hello"}'}
   * luna_tools.open_path('C:/path/to/file') - Opens a file or folder directly.
 
   * luna_tools.type_text('text', press_enter=True) - Types text, optionally presses Enter.
