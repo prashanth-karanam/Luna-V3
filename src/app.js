@@ -1079,7 +1079,7 @@ if ($('cancelSettings')) $('cancelSettings').addEventListener('click', closeSett
 if ($('ghostLoginBtn')) {
     $('ghostLoginBtn').addEventListener('click', () => {
         if (window.electronAPI) {
-            window.electronAPI.executeCode('cmd', 'start python luna_message.py login');
+            window.electronAPI.executeCode('shell', 'start python luna_message.py login');
             if (typeof showToast === 'function') showToast('Launching Ghost Browser...', false);
         }
     });
