@@ -725,7 +725,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
   } catch(e) { console.log('[LUNA-DEBUG] web_automation error:', e); }
   
   // ZERO-LATENCY HYBRID ROUTER
-  const actionRegex = /\b(search|open|app|click|type|file|dir|folder|cmd|run|web|google|find|who|what|when|where|why|how|news|latest|score|match|weather|download|install)\b/i;
+  const actionRegex = /\b(search|open|app|click|type|file|dir|folder|cmd|run|web|google|find|who|what|when|where|why|how|news|latest|score|match|weather|download|install|send|message|dm|whatsapp|instagram|insta|telegram|discord|email|mail)\b/i;
   let useGemini = false;
   if ((actionRegex.test(lowerQuery) || depth > 0) && cfg.geminiKey) {
       useGemini = true;
