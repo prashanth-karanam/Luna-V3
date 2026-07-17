@@ -289,3 +289,103 @@ def open_url(url, browser=None):
         os.system(f"start \"\" \"{url}\"")
     time.sleep(2.5) # Wait for browser to launch and page to load
     return True
+def get_largest_file_in_downloads():
+    """Return the largest file (path and size) in the user's Downloads folder.
+    If no files are found, returns a friendly message.
+    """
+    import os
+    try:
+        downloads_dir = os.path.join(os.path.expanduser('~'), 'Downloads')
+        if not os.path.isdir(downloads_dir):
+            return "Downloads folder not found."
+        max_path = None
+        max_size = -1
+        for root, _, files in os.walk(downloads_dir):
+            for f in files:
+                try:
+                    fp = os.path.join(root, f)
+                    sz = os.path.getsize(fp)
+                    if sz > max_size:
+                        max_size = sz
+                        max_path = fp
+                except Exception:
+                    continue
+        if max_path is None:
+            return "No files found in Downloads folder."
+        return f"Largest file: {max_path} ({max_size} bytes)"
+    except Exception as e:
+        return f"Error scanning Downloads: {e}"
+def selenium_get_driver(browser='chrome'):
+    """Return a Selenium WebDriver for the requested browser (chrome or opera)."""
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service as ChromeService
+    from webdriver_manager.chrome import ChromeDriverManager
+    import os
+
+    options = webdriver.ChromeOptions()
+    if browser == 'opera':
+        possible = [r"C:\\Program Files\\Opera\\launcher.exe", r"C:\\Program Files (x86)\\Opera\\launcher.exe"]
+        for p in possible:
+            if os.path.exists(p):
+                options.binary_location = p
+                break
+        else:
+            print('[Selenium] Opera binary not found; using Chrome.')
+    if os.getenv('SELENIUM_HEADLESS', '1') == '1':
+        options.add_argument('--headless')
+        options.add_argument('--disable-gpu')
+    options.add_argument('--no-sandbox')
+    options.add_argument('--disable-dev-shm-usage')
+    driver = webdriver.Chrome(service=ChromeService(ChromeDriverManager().install()), options=options)
+    driver.set_page_load_timeout(30)
+    return driver
+
+def selenium_open_url(url, browser='chrome'):
+    driver = selenium_get_driver(browser)
+    driver.get(url)
+    return driver
+
+def selenium_click(driver, css_selector, timeout=10):
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    try:
+        elem = WebDriverWait(driver, timeout).until(EC.element_to_be_clickable((By.CSS_SELECTOR, css_selector)))
+        elem.click()
+        return True
+    except Exception as e:
+        print(f'[Selenium] Click failed ({e})')
+        return False
+
+def selenium_type(driver, css_selector, text, timeout=10, press_enter=False):
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    try:
+        elem = WebDriverWait(driver, timeout).until(EC.presence_of_element_located((By.CSS_SELECTOR, css_selector)))
+        elem.clear()
+        elem.send_keys(text)
+        if press_enter:
+            elem.send_keys('\n')
+        return True
+    except Exception as e:
+        print(f'[Selenium] Type failed ({e})')
+        return False
+
+def selenium_close(driver):
+    try:
+        driver.quit()
+    except Exception:
+        pass
+    return True
+
+# High‑level helpers for your recent tasks
+def open_instagram_profile(username, browser='chrome'):
+    """Open Instagram profile via Selenium and return the driver for further actions."""
+    url = f'https://www.instagram.com/{username}/'
+    return selenium_open_url(url, browser)
+
+def search_in_opera(query, browser='opera'):
+    """Open Opera (or Chrome) and perform a Google search for the query."""
+    url = f'https://www.google.com/search?q={query.replace(' ', '+')}'
+    return selenium_open_url(url, browser)

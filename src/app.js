@@ -61,7 +61,7 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
 
   const cbVision = document.getElementById('includeVisionContext');
   const needsVision = cbVision ? cbVision.checked : false;
-  const needsDesktop = /\b(app|open|click|type|python|desktop|automate|control)\b/i.test(userQuery);
+  const needsDesktop = /\b(app|open|click|type|python|desktop|automate|control|send|message|dm)\b/i.test(userQuery);
   const needsSearch = /\b(search|web|google|find out|who|what|when|where|why|how|news|latest|score|match|weather)\b/i.test(userQuery);
   const needsFileSystem = /(file|dir|folder|terminal|cmd|command|run)/i.test(userQuery);
   
@@ -83,36 +83,22 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
   if (needsSearch) {
       base += `
 - WEB SEARCHING:
-  You have two search tools. 
-  1. SILENT_SEARCH (Google Grounded / DDG): Fast and invisible. Use this FIRST for ALL factual questions, news, LIVE SPORTS SCORES, and weather. Format: ${cfg.showThoughts !== false ? '{"thought": "searching silently", "tool": "SILENT_SEARCH", "query": "your search term"}' : '{"tool": "SILENT_SEARCH", "query": "your search term"}'}
-  2. WEB_SEARCH (Browser): Physically opens the user's browser to scrape Google. ONLY use this as a FALLBACK if SILENT_SEARCH fails to give you the exact live sports score or weather data, OR if the user explicitly asks you to open the browser. Format: ${cfg.showThoughts !== false ? '{"thought": "opening browser", "tool": "WEB_SEARCH", "query": "your search term"}' : '{"tool": "WEB_SEARCH", "query": "your search term"}'}
-  You MUST use this JSON format to go to a url: ${cfg.showThoughts !== false ? '{"thought": "going", "tool": "WEB_GO", "query": "https://url.com"}' : '{"tool": "WEB_GO", "query": "https://url.com"}'}
-  You MUST use this JSON format to read a page: ${cfg.showThoughts !== false ? '{"thought": "reading", "tool": "WEB_READ"}' : '{"tool": "WEB_READ"}'}`;
+  * SILENT_SEARCH (Fast API): Use this for ALL factual questions, news, live scores, and weather. Format: ${cfg.showThoughts !== false ? '{"thought": "searching silently", "tool": "SILENT_SEARCH", "query": "your search term"}' : '{"tool": "SILENT_SEARCH", "query": "your search term"}'}`;
   }
-
-  if (needsDesktop) {
+   if (needsDesktop) {
+      const msgFormat = cfg.showThoughts !== false 
+          ? '{"thought": "sending", "response": "Sending now", "tool": "SEND_MESSAGE", "query": "instagram|username|hello"}'
+          : '{"response": "Sending now", "tool": "SEND_MESSAGE", "query": "instagram|username|hello"}';
       base += `
-- DESKTOP AUTOMATION & MESSAGING:
-  * For Messaging (WhatsApp, Instagram, Telegram, Discord, Messenger), ALWAYS use: ${cfg.showThoughts !== false ? '{"thought": "sending", "response": "Sending message now", "tool": "SEND_MESSAGE", "query": "instagram|username|hello"}' : '{"response": "Sending message now", "tool": "SEND_MESSAGE", "query": "instagram|username|hello"}'}
-  * luna_tools.open_path('C:/path/to/file') - Opens a file or folder directly.
-
-  * luna_tools.type_text('text', press_enter=True) - Types text, optionally presses Enter.
-  * luna_tools.press('enter') - Presses a single key (enter, tab, escape, etc).
-  * luna_tools.hotkey('ctrl', 'c') - Presses a key combination.
-  * luna_tools.click_text('visible text') - Finds and clicks text on screen using vision.
-  * luna_tools.mouse_click(x, y) - Clicks at exact screen coordinates.
-  * luna_tools.scroll(amount) - Scrolls up (positive) or down (negative).
-  
-  CRITICAL RULES:
-  * To open an app: ONLY use luna_tools.open_app('Name'). Call it ONCE. Do NOT loop or retry.
-  * To navigate to a website: ONLY use luna_tools.open_url('https://site.com'). NEVER try to type URLs manually into the browser.
-  * SMART ROUTING: Construct direct URLs when possible to skip UI navigation (e.g., use 'https://youtube.com/results?search_query=x' for YT search).
-  * CRITICAL: NEVER write python scripts (EXECUTE_PYTHON) or use open_url for WhatsApp, Instagram, Telegram, or Discord messaging! You MUST strictly use the SEND_MESSAGE tool for these platforms to utilize the Ghost Browser.
-  * NEVER use tab_and_check_until to verify if an app opened. It does NOT do that.
-  * Keep code simple: 1-3 lines max. No loops, no complex scripts.
-  * Example: {"thought": "Opening Edge", "tool": "EXECUTE_PYTHON", "code": "import luna_tools\\nluna_tools.open_app('Microsoft Edge')"}
-  * Example: {"thought": "Going to site", "tool": "EXECUTE_PYTHON", "code": "import luna_tools\\nluna_tools.open_url('https://google.com')"}
-  * Example: {"thought": "Typing hello", "tool": "EXECUTE_PYTHON", "code": "import luna_tools\\nluna_tools.type_text('hello', press_enter=True)"}`;
+- MESSAGING: Use SEND_MESSAGE for WhatsApp/Instagram/Telegram/Discord. Format: ${msgFormat}
+  The query is: platform|receiver|message. The backend handles everything (Selenium clicks buttons, no vision needed).
+- OPEN APP: luna_tools.open_app('Name') or luna_tools.open_url('https://site.com'). Use EXECUTE_PYTHON tool.
+- DESKTOP: luna_tools.type_text(), press(), hotkey(), click_text(), mouse_click(), scroll().
+RULES:
+* SEND_MESSAGE for messaging. EXECUTE_PYTHON with luna_tools for everything else. Never mix them.
+* If user says "open insta", use open_app/open_url. If user says "message X on insta", use SEND_MESSAGE.
+* On error feedback, retry immediately with correct format. No apologies.
+* Keep code to 1-3 lines. No loops.`;
   }
 
   if (needsFileSystem) {
@@ -724,14 +710,63 @@ If the user asks you to search, open apps, or do anything on their computer, you
     }
   } catch(e) { console.log('[LUNA-DEBUG] web_automation error:', e); }
   
-  // ZERO-LATENCY HYBRID ROUTER
-  const actionRegex = /\b(search|open|app|click|type|file|dir|folder|cmd|run|web|google|find|who|what|when|where|why|how|news|latest|score|match|weather|download|install|send|message|dm|whatsapp|instagram|insta|telegram|discord|email|mail)\b/i;
+  // ─── APP NICKNAME MAP (shared by fast path + openAppRegex) ───
+  const APP_URL_MAP = {
+      'insta': 'https://www.instagram.com/', 'instagram': 'https://www.instagram.com/',
+      'whatsapp': 'WhatsApp', 'wa': 'WhatsApp', 'telegram': 'Telegram', 'tg': 'Telegram',
+      'discord': 'Discord', 'chrome': 'Google Chrome', 'opera': 'Opera', 'edge': 'Microsoft Edge',
+      'youtube': 'https://www.youtube.com/', 'yt': 'https://www.youtube.com/',
+      'twitter': 'https://www.twitter.com/', 'x': 'https://www.twitter.com/',
+      'github': 'https://www.github.com/', 'reddit': 'https://www.reddit.com/',
+      'spotify': 'Spotify', 'netflix': 'https://www.netflix.com/',
+      'notepad': 'Notepad', 'calculator': 'Calculator', 'calc': 'Calculator',
+      'settings': 'Settings', 'explorer': 'explorer', 'files': 'explorer',
+      'paint': 'Paint', 'terminal': 'cmd', 'cmd': 'cmd', 'powershell': 'powershell',
+  };
+  const knownAppNames = Object.keys(APP_URL_MAP).join('|');
+
+  // ─── ZERO-LATENCY HYBRID ROUTER ───
+  const actionRegex = /\b(search|open|app|click|type|file|dir|folder|cmd|run|web|google|news|latest|score|match|weather|download|install|send|message|dm|whatsapp|instagram|insta|telegram|discord|email|mail)\b/i;
+  const openAppRegex = new RegExp(`\\b(open|launch)\\b.*\\b(${knownAppNames})\\b`, 'i');
   let useGemini = false;
-  if ((actionRegex.test(lowerQuery) || depth > 0) && cfg.geminiKey) {
+  if ((actionRegex.test(lowerQuery) || depth > 0) && cfg.geminiKey && !openAppRegex.test(lowerQuery)) {
       useGemini = true;
-      console.log('[LUNA-DEBUG] Regex Router: Action detected. Routing to Gemini.');
+      console.log('[LUNA-DEBUG] Regex Router: Action/Complex Task detected. Routing to Cloud API.');
   } else {
-      console.log('[LUNA-DEBUG] Regex Router: Normal chat detected. Routing to Local Ollama.');
+      console.log('[LUNA-DEBUG] Regex Router: Normal chat or Open-App detected. Routing to Local Phi-3.');
+  }
+
+  // ─── ZERO-LLM FAST PATH: "open [known-app]" commands ───
+  // Matches ONLY known app names. Handles compound requests by splitting on "and"/"then".
+  const openKnownRegex = new RegExp(`\\b(?:open|launch)\\s+(?:the\\s+|my\\s+)?(?:${knownAppNames})\\b`, 'i');
+  if (openKnownRegex.test(lowerQuery)) {
+      // Extract which known app to open
+      const appMatch = lowerQuery.match(new RegExp(`\\b(?:open|launch)\\s+(?:the\\s+|my\\s+)?(${knownAppNames})\\b`, 'i'));
+      if (appMatch) {
+          const appKey = appMatch[1].toLowerCase();
+          const resolved = APP_URL_MAP[appKey];
+          const isUrl = resolved.startsWith('http');
+          const pyCode = isUrl
+              ? `import luna_tools\nluna_tools.open_url('${resolved}')`
+              : `import luna_tools\nluna_tools.open_app('${resolved}')`;
+
+          console.log(`[LUNA-DEBUG] FAST PATH: open "${appKey}" -> ${resolved}`);
+          if (typeof addBubble === 'function') addBubble('luna', `Opening ${appKey}!`);
+          if (window.electronAPI) {
+              const res = await window.electronAPI.executeCode('python', pyCode);
+              if (res && !res.ok) console.error('[LUNA-DEBUG] Fast path error:', res.error);
+          }
+
+          // COMPOUND REQUEST: Check if there's more after "and"/"then"/"also"
+          const compoundMatch = lowerQuery.match(/\b(?:and|then|also)\s+(.+)/i);
+          if (compoundMatch) {
+              const remaining = compoundMatch[1].trim();
+              console.log(`[LUNA-DEBUG] FAST PATH: Compound detected, routing remainder to AI: "${remaining}"`);
+              // Route the rest through the normal AI pipeline
+              return await callAI(remaining, failCount, depth);
+          }
+          return `Opening ${appKey}!`;
+      }
   }
 
   sysPrompt += tempContext + getSystemPrompt(lowerQuery);
@@ -2934,7 +2969,8 @@ const AI_COMMAND_REGISTRY = {
     'WEB_SEARCH': async (match, feedback) => {
         if (window.electronAPI) {
             const query = match[1].trim().replace(/^["']|["']$/g, '');
-            const pyCode = `import luna_browser, sys\nsys.stdout.reconfigure(encoding='utf-8')\ntry:\n    res1 = luna_browser.search("${query}")\n    res2 = luna_browser.get_text()\n    print(f"{res1}\\n\\n--- PAGE CONTENT ---\\n\\n{res2}")\nexcept Exception as e:\n    print(f"Error: {e}")\n`;
+            // Forced to use SILENT_SEARCH duckduckgo API instead of launching the browser.
+            const pyCode = `import duckduckgo_search\nprint(duckduckgo_search.DDGS().text("${query}", max_results=3))`;
             const res = await window.electronAPI.executeCode('python', pyCode);
             let out = (res.ok && res.output) ? res.output : ((res.error) ? res.error + "\n" + res.output : "Failed to search web");
             feedback.push(`[WEB_SEARCH_RESULTS for ${query}]:\n${out}`);
@@ -3192,6 +3228,14 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
     }
     if (!text || typeof text !== 'string') return text;
 
+    // --- AGGRESSIVE ANTI-HALLUCINATION INTERCEPTOR ---
+    const lowerText = text.toLowerCase();
+    const isHallucinating = lowerText.includes('"tool_code"') || lowerText.includes('browser_navigate');
+    if (isHallucinating) {
+        const nextPrompt = `[TOOL FEEDBACK]:\n[SYSTEM_ERROR]: FATAL RULE VIOLATION! You used the forbidden 'tool_code' key or hallucinated 'browser_navigate()'. You are NOT allowed to write Python for messaging!\nYou MUST strictly use the JSON schema: {"tool": "SEND_MESSAGE", "query": "platform|username|message"}\nUse this feedback to correct your format and try again.`;
+        return await callAI(nextPrompt, failCount, depth + 1);
+    }
+
     try {
         let jsonStr = text;
         if (!text.trim().startsWith('{')) {
@@ -3233,6 +3277,13 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
         while ((match = tagRegex.exec(text)) !== null) {
             const tag = match[1].toUpperCase();
             const shiftedMatch = [match[0], match[2]];
+            
+            if (tag === 'SEND_MESSAGE') {
+                if (typeof addBubble === 'function') {
+                    addBubble('luna', '📨 Sending message...');
+                }
+            }
+            
             if (AI_COMMAND_REGISTRY[tag]) {
                 await AI_COMMAND_REGISTRY[tag](shiftedMatch, feedback);
             } else if (tag === 'RUN_CMD') {
@@ -3284,12 +3335,20 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
 
         if (pyCode && window.electronAPI) {
             clean = clean.replace(pyMatchStr, '');
-            if (typeof addCodeBlock === 'function') addCodeBlock('python', pyCode);
-            const res = await window.electronAPI.executeCode('python', pyCode);
-            if (res.ok) {
-                feedback.push(`[PYTHON_OUTPUT]:\n${res.output}`);
+            
+            const lcode = pyCode.toLowerCase();
+            const isIllegalMsg = lcode.includes('browser_navigate');
+            
+            if (isIllegalMsg) {
+                feedback.push(`[SYSTEM_ERROR]: RULE VIOLATION. Do NOT use Python scripts or hallucinated functions like 'browser_navigate' for messaging! You MUST strictly use the JSON schema: {"tool": "SEND_MESSAGE", "query": "platform|username|message"}`);
             } else {
-                feedback.push(`[PYTHON_ERROR]: ${res.error || 'Unknown error'}\nPartial output: ${res.output || 'none'}`);
+                if (typeof addCodeBlock === 'function') addCodeBlock('python', pyCode);
+                const res = await window.electronAPI.executeCode('python', pyCode);
+                if (res.ok) {
+                    feedback.push(`[PYTHON_OUTPUT]:\n${res.output}`);
+                } else {
+                    feedback.push(`[PYTHON_ERROR]: ${res.error || 'Unknown error'}\nPartial output: ${res.output || 'none'}`);
+                }
             }
         }
 

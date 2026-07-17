@@ -309,39 +309,7 @@ def _resolve_browser(name: str) -> dict | None:
 
 
 def _detect_default_browser() -> str:
-    try:
-        if _OS == "Windows":
-            import winreg
-            k = winreg.OpenKey(
-                winreg.HKEY_CURRENT_USER,
-                r"Software\Microsoft\Windows\Shell\Associations"
-                r"\UrlAssociations\http\UserChoice",
-            )
-            prog_id = winreg.QueryValueEx(k, "ProgId")[0].lower()
-            winreg.CloseKey(k)
-            for kw in ("edge", "firefox", "opera", "brave", "vivaldi", "chrome"):
-                if kw in prog_id:
-                    return kw
-        elif _OS == "Darwin":
-            out = subprocess.run(
-                ["defaults", "read",
-                 "com.apple.LaunchServices/com.apple.launchservices.secure",
-                 "LSHandlers"],
-                capture_output=True, text=True, timeout=5,
-            ).stdout.lower()
-            for kw in ("firefox", "opera", "brave", "vivaldi", "safari", "chrome", "edge"):
-                if kw in out:
-                    return kw
-        elif _OS == "Linux":
-            out = subprocess.run(
-                ["xdg-settings", "get", "default-web-browser"],
-                capture_output=True, text=True, timeout=5,
-            ).stdout.lower()
-            for kw in ("firefox", "opera", "brave", "vivaldi", "chrome", "edge"):
-                if kw in out:
-                    return kw
-    except Exception:
-        pass
+    # Forced to always use Chromium (Chrome) for consistency and token efficiency
     return "chrome"
 
 
@@ -715,32 +683,34 @@ class _BrowserSession:
     async def get_text(self) -> str:
         page = await self._get_page()
         try:
-            html = await page.content()
-            try:
-                from bs4 import BeautifulSoup
-                soup = BeautifulSoup(html, 'lxml')
-                # Remove common junk tags
-                for element in soup(["script", "style", "nav", "footer", "aside", "header", "noscript", "iframe", "svg", "form"]):
-                    element.decompose()
-                
-                # Try to extract the main content area first
-                main_content = soup.find('main') or soup.find('article') or soup.body
-                if not main_content:
-                    main_content = soup
-                
-                # Extract text with nice formatting
-                text = main_content.get_text(separator='\n')
-                # Clean up multiple newlines and spaces
-                lines = (line.strip() for line in text.splitlines())
-                chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-                text = '\n'.join(chunk for chunk in chunks if chunk)
-                
-                # Increase context size since it's cleaner
-                return text[:8000]
-            except ImportError:
-                # Fallback to primitive method if beautifulsoup4 is not installed
-                text = await page.inner_text("body")
-                return text[:4_000]
+            # Token-efficient DOM extraction using JavaScript (as requested for small LLMs)
+            js_code = """
+            () => {
+                const elements = Array.from(document.querySelectorAll('button, a, input, textarea, select, [role="button"], [role="link"], [tabindex]'));
+                const results = [];
+                elements.forEach(el => {
+                    const rect = el.getBoundingClientRect();
+                    if (rect.width > 0 && rect.height > 0) {
+                        let text = (el.innerText || el.value || el.placeholder || el.getAttribute('aria-label') || el.title || '').trim().replace(/\\s+/g, ' ');
+                        if (text.length > 0) {
+                            let tag = el.tagName.toLowerCase();
+                            let info = `<${tag}`;
+                            if (el.id) info += ` id="${el.id}"`;
+                            if (el.name) info += ` name="${el.name}"`;
+                            if (el.type) info += ` type="${el.type}"`;
+                            info += `> ${text}`;
+                            results.push(info);
+                        }
+                    }
+                });
+                return results.slice(0, 100).join('\\n');
+            }
+            """
+            elements_text = await page.evaluate(js_code)
+            text_context = await page.evaluate("() => document.body.innerText.substring(0, 1000).replace(/\\n+/g, ' ')")
+            
+            summary = f"--- PAGE CONTEXT ---\n{text_context}\n\n--- INTERACTIVE ELEMENTS ---\n{elements_text}"
+            return summary[:4000]
         except Exception as e:
             return f"Could not get page text: {e}"
 

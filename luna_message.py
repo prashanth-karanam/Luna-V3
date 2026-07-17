@@ -2,6 +2,7 @@ import json
 import subprocess
 import sys
 import time
+import os
 from pathlib import Path
 
 try:
@@ -21,7 +22,7 @@ except ImportError:
 def _base_dir() -> Path:
     if getattr(sys, "frozen", False):
         return Path(sys.executable).parent
-    return Path(__file__).resolve().parent.parent
+    return Path(__file__).resolve().parent
 
 def _get_os() -> str:
     try:
@@ -32,18 +33,56 @@ def _get_os() -> str:
     except Exception:
         return "windows"
 
+# ─── Contact / Alias Resolution ─────────────────────────────
+
+def _load_contacts() -> dict:
+    """Load contacts.json from project root."""
+    try:
+        contacts_file = _base_dir() / "contacts.json"
+        if contacts_file.exists():
+            return json.loads(contacts_file.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"[SendMessage] Could not load contacts: {e}")
+    return {}
+
+def _resolve_contact(receiver: str) -> str:
+    """Check if receiver is an alias in contacts.json; return the resolved value."""
+    contacts = _load_contacts()
+    lower = receiver.lower().strip()
+    for name, target in contacts.items():
+        if name.lower().strip() == lower:
+            print(f"[SendMessage] Resolved alias '{receiver}' -> '{target}'")
+            return target
+    return receiver
+
+def _resolve_platform(platform: str):
+    """Return the handler function for the given platform."""
+    handlers = {
+        "whatsapp":  _send_whatsapp,
+        "instagram": _send_instagram,
+        "telegram":  _send_telegram,
+        "discord":   _send_discord,
+        "signal":    _send_signal,
+    }
+    p = platform.lower().strip()
+    if p in handlers:
+        return handlers[p]
+    # Fuzzy match
+    for key in handlers:
+        if key.startswith(p) or p.startswith(key):
+            return handlers[key]
+    raise ValueError(f"Unknown platform: {platform}")
+
+# ─── Helpers ─────────────────────────────────────────────────
 
 def _require_pyautogui():
     if not _PYAUTOGUI:
         raise RuntimeError("PyAutoGUI not installed. Run: pip install pyautogui")
 
-
 def _paste_text(text: str) -> None:
     _require_pyautogui()
-
     os_name = _get_os()
     paste_hotkey = ("command", "v") if os_name == "mac" else ("ctrl", "v")
-
     if _PYPERCLIP:
         pyperclip.copy(text)
         time.sleep(0.15)
@@ -51,7 +90,6 @@ def _paste_text(text: str) -> None:
         time.sleep(0.1)
     else:
         pyautogui.write(text, interval=0.03)
-
 
 def _clear_and_paste(text: str) -> None:
     _require_pyautogui()
@@ -63,10 +101,11 @@ def _clear_and_paste(text: str) -> None:
     time.sleep(0.1)
     _paste_text(text)
 
+# ─── Desktop-based senders (WhatsApp, Telegram, etc.) ────────
+
 def _open_app(app_name: str) -> bool:
     _require_pyautogui()
     os_name = _get_os()
-
     try:
         if os_name == "windows":
             pyautogui.press("win")
@@ -76,7 +115,6 @@ def _open_app(app_name: str) -> bool:
             pyautogui.press("enter")
             time.sleep(2.5)
             return True
-
         elif os_name == "mac":
             result = subprocess.run(
                 ["open", "-a", app_name],
@@ -89,46 +127,23 @@ def _open_app(app_name: str) -> bool:
                 )
             time.sleep(2.5)
             return result.returncode == 0
-
-        else: 
-            launched = False
-            for launcher in [
-                ["gtk-launch", app_name.lower()],
-                [app_name.lower()],
-            ]:
+        else:
+            for launcher in [["gtk-launch", app_name.lower()], [app_name.lower()]]:
                 try:
-                    subprocess.Popen(
-                        launcher,
-                        stdout=subprocess.DEVNULL,
-                        stderr=subprocess.DEVNULL,
-                    )
-                    launched = True
-                    break
+                    subprocess.Popen(launcher, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                    time.sleep(2.5)
+                    return True
                 except FileNotFoundError:
                     continue
-            time.sleep(2.5)
-            return launched
-
+            return False
     except Exception as e:
-        print(f"[SendMessage] ⚠️ Could not open {app_name}: {e}")
-        return False
-
-
-def _open_browser_url(url: str) -> bool:
-    import webbrowser
-    try:
-        webbrowser.open(url)
-        time.sleep(4.0) 
-        return True
-    except Exception as e:
-        print(f"[SendMessage] ⚠️ Could not open browser: {e}")
+        print(f"[SendMessage] Could not open {app_name}: {e}")
         return False
 
 def _search_in_app(query: str) -> None:
     _require_pyautogui()
     os_name = _get_os()
     search_hotkey = ("command", "f") if os_name == "mac" else ("ctrl", "f")
-
     pyautogui.hotkey(*search_hotkey)
     time.sleep(0.5)
     _clear_and_paste(query)
@@ -137,12 +152,10 @@ def _search_in_app(query: str) -> None:
 def _desktop_send(app_name: str, receiver: str, message: str) -> str:
     if not _open_app(app_name):
         return f"Could not open {app_name}."
-
     time.sleep(1.0)
     _search_in_app(receiver)
     pyautogui.press("enter")
     time.sleep(0.8)
-
     _paste_text(message)
     time.sleep(0.2)
     pyautogui.press("enter")
@@ -158,66 +171,122 @@ def _send_telegram(receiver: str, message: str) -> str:
 def _send_signal(receiver: str, message: str) -> str:
     return _desktop_send("Signal", receiver, message)
 
-
 def _send_discord(receiver: str, message: str) -> str:
     return _desktop_send("Discord", receiver, message)
 
+# ─── Instagram: Selenium-based (no vision, no token waste) ───
+
+def _get_selenium_driver():
+    """Get a visible Selenium Chrome driver with Instagram cookies."""
+    from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service as ChromeService
+    from webdriver_manager.chrome import ChromeDriverManager
+
+    # Use a persistent profile so Instagram stays logged in
+    profile_dir = str(_base_dir() / "config" / "selenium_profile")
+    os.makedirs(profile_dir, exist_ok=True)
+
+    options = webdriver.ChromeOptions()
+    options.add_argument(f"--user-data-dir={profile_dir}")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-blink-features=AutomationControlled")
+    # NOT headless — user needs to see the browser for login/verification
+    options.add_experimental_option("excludeSwitches", ["enable-automation"])
+
+    driver = webdriver.Chrome(
+        service=ChromeService(ChromeDriverManager().install()),
+        options=options
+    )
+    driver.set_page_load_timeout(20)
+    return driver
 
 def _send_instagram(receiver: str, message: str) -> str:
-    # GHOST BROWSER ARCHITECTURE (Playwright)
+    """Send Instagram DM using Selenium — direct browser control, no vision."""
+    from selenium.webdriver.common.by import By
+    from selenium.webdriver.support.ui import WebDriverWait
+    from selenium.webdriver.support import expected_conditions as EC
+    from selenium.webdriver.common.keys import Keys
+
+    driver = None
     try:
-        from playwright.sync_api import sync_playwright
-    except ImportError:
-        return "Playwright not installed. Run: pip install playwright"
-        
-    user_data_dir = _base_dir() / "config" / "ghost_profile"
-    
-    # If the receiver was resolved to a direct Instagram URL from contacts.json
-    if receiver.startswith("http"):
-        target_url = receiver
-    else:
-        target_url = f"https://www.instagram.com/{receiver}/"
-        
-    try:
-        with sync_playwright() as p:
-            # Launch invisible browser
-            browser = p.chromium.launch_persistent_context(
-                user_data_dir=str(user_data_dir),
-                headless=True,
-                args=["--disable-blink-features=AutomationControlled"]
-            )
-            page = browser.new_page()
-            
+        driver = _get_selenium_driver()
+
+        # CASE 1: Receiver is a direct DM link (alias resolved)
+        if receiver.startswith("http"):
+            print(f"[SendMessage] Opening direct DM link: {receiver}")
+            driver.get(receiver)
+            time.sleep(4)
+
+            # Find the message input box and type
             try:
-                page.goto(target_url, timeout=20000)
-                
-                # Check for login wall
-                if page.locator("input[name='username']").count() > 0 or page.locator("button:has-text('Log in')").count() > 0:
-                    return "Not logged into Instagram. Run `python luna_message.py login` in your terminal to authenticate."
-                
-                # If we went to a profile, click the Message button
-                if not receiver.startswith("http"):
-                    msg_btn = page.locator("div[role='button']:has-text('Message'), button:has-text('Message'), a:has-text('Message')").first
-                    msg_btn.wait_for(state="visible", timeout=10000)
-                    msg_btn.click()
-                
-                # Wait for chat box
-                chat_box = page.locator("div[contenteditable='true']").first
-                chat_box.wait_for(state="visible", timeout=15000)
-                
-                # Send message
-                chat_box.fill(message)
-                page.keyboard.press("Enter")
-                
-                time.sleep(1.0) # Ensure it fires before closing
-                return f"Message sent to {receiver} via silent Ghost Browser."
-                
+                # Instagram DM input — try the contenteditable div first
+                msg_box = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, 
+                        "div[role='textbox'][contenteditable='true'], "
+                        "textarea[placeholder*='Message'], "
+                        "input[placeholder*='Message']"
+                    ))
+                )
+                msg_box.click()
+                time.sleep(0.3)
+                msg_box.send_keys(message)
+                time.sleep(0.3)
+                msg_box.send_keys(Keys.RETURN)
+                time.sleep(1)
+                return f"Message sent via direct DM link."
             except Exception as e:
-                return f"Ghost Browser navigation failed: {str(e)}"
-            finally:
-                browser.close()
+                return f"Could not find message box on DM page: {e}"
+
+        # CASE 2: Receiver is a username (no alias / not in contacts)
+        else:
+            profile_url = f"https://www.instagram.com/{receiver}/"
+            print(f"[SendMessage] Opening profile: {profile_url}")
+            driver.get(profile_url)
+            time.sleep(3)
+
+            # Click the "Message" button on the profile page
+            try:
+                msg_btn = WebDriverWait(driver, 8).until(
+                    EC.element_to_be_clickable((By.XPATH,
+                        "//div[text()='Message'] | //button[contains(text(),'Message')]"
+                    ))
+                )
+                msg_btn.click()
+                time.sleep(3)
+            except Exception as e:
+                return f"Could not find 'Message' button on {receiver}'s profile: {e}"
+
+            # Type in the DM box
+            try:
+                msg_box = WebDriverWait(driver, 10).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR,
+                        "div[role='textbox'][contenteditable='true'], "
+                        "textarea[placeholder*='Message'], "
+                        "input[placeholder*='Message']"
+                    ))
+                )
+                msg_box.click()
+                time.sleep(0.3)
+                msg_box.send_keys(message)
+                time.sleep(0.3)
+                msg_box.send_keys(Keys.RETURN)
+                time.sleep(1)
+                return f"Message sent to {receiver} via Instagram."
+            except Exception as e:
+                return f"Could not type message in DM box: {e}"
+
     except Exception as e:
-        return f"Playwright failed: {str(e)}"
+        return f"Instagram messaging failed: {e}"
+    finally:
+        if driver:
+            try:
+                driver.quit()
+            except Exception:
+                pass
+
+# ─── Main entry point ────────────────────────────────────────
+
 def send_message(
     parameters: dict,
     response=None,
@@ -228,21 +297,17 @@ def send_message(
     receiver     = params.get("receiver", "").strip()
     message_text = params.get("message_text", "").strip()
     platform     = params.get("platform", "whatsapp").strip()
-    
-    # Resolve aliases like 'shashi' -> 'shashank_vr_18'
+
+    # Resolve aliases (e.g. 'shashi' -> DM link)
     receiver = _resolve_contact(receiver)
 
-    if not receiver:
+    if not receiver or receiver.lower() in ("none", "null", "?"):
         return "Please specify a recipient."
-    if not message_text:
+    if not message_text or message_text.lower() in ("none", "null", "?"):
         return "Please specify the message content."
-    if not _PYAUTOGUI:
-        return "PyAutoGUI is not installed — cannot control the desktop."
 
     preview = message_text[:50] + ("…" if len(message_text) > 50 else "")
-    print(f"[SendMessage] 📨 {platform} → {receiver}: {preview}")
-    if player:
-        player.write_log(f"[msg] {platform} → {receiver}")
+    print(f"[SendMessage] {platform} -> {receiver}: {preview}")
 
     try:
         handler = _resolve_platform(platform)
@@ -250,32 +315,16 @@ def send_message(
     except Exception as e:
         result = f"Could not send message: {e}"
 
-    print(f"[SendMessage] {'✅' if 'sent' in result.lower() else '❌'} {result}")
-    if player:
-        player.write_log(f"[msg] {result}")
-
+    print(f"[SendMessage] {'OK' if 'sent' in result.lower() else 'FAIL'} {result}")
     return result
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "login":
-        print("Launching Ghost Browser in headed mode for Instagram login...")
-        try:
-            from playwright.sync_api import sync_playwright
-            user_data_dir = _base_dir() / "config" / "ghost_profile"
-            with sync_playwright() as p:
-                browser = p.chromium.launch_persistent_context(
-                    user_data_dir=str(user_data_dir),
-                    headless=False,
-                    args=["--disable-blink-features=AutomationControlled"]
-                )
-                page = browser.new_page()
-                page.goto("https://www.instagram.com/")
-                print("Please log into Instagram in the browser window.")
-                print("Close the browser window when you are done to save your session.")
-                try:
-                    page.wait_for_event("close", timeout=0)
-                except Exception:
-                    pass
-                print("Session saved. You can now use Luna to send messages silently!")
-        except ImportError:
-            print("Playwright not installed. Run: pip install playwright")
+        print("Launching Selenium browser for Instagram login...")
+        driver = _get_selenium_driver()
+        driver.get("https://www.instagram.com/")
+        print("Please log into Instagram in the browser window.")
+        print("Press Enter in this terminal when done...")
+        input()
+        driver.quit()
+        print("Session saved to config/selenium_profile/. You can now send messages!")
