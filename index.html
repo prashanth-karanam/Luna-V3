@@ -144,20 +144,20 @@ window.toggleAuth = function(e) {
       <div class="nav-right" style="display:flex; align-items:center; gap:8px;">
         <button class="icon-btn mobile-only" id="mobileMenuBtn" title="Menu" style="display:none;">☰</button>
         <div id="navButtonsWrap" class="nav-buttons-wrap" style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end; max-width: 60vw; align-items: center;">
-          <select id="chatEngineToggle" style="background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: var(--blue); border-radius: 8px; font-size: 0.75rem; padding: 4px 8px; outline: none; margin-right: 5px; cursor: pointer;">
+          <select id="chatEngineToggle" style="background: rgba(0,0,0,0.5); border: 1px solid var(--border); color: var(--blue); border-radius: 8px; font-size: 0.75rem; padding: 4px 8px; outline: none; margin-right: 5px; cursor: pointer;; display:none;" style="display:none;">
             <option value="qwythos-9b:latest">🤖 Qwythos 9B</option>
             <option value="Llama-3.2-3B-Instruct-uncensored:latest">🦙 Llama 3.2 (3B)</option>
             <option value="minicpm-v:latest">👁️ MiniCPM-V (Vision)</option>
           </select>
-          <button class="icon-btn" id="consoleBtn" title="Luna IDE Console">💻</button>
-          <button class="icon-btn" id="storageBtn" title="Data Bank">🗄️</button>
-          <button class="icon-btn" id="memoryBtn" title="Luna Memory">🧠</button>
+          <button class="icon-btn" id="consoleBtn" title="Luna IDE Console" style="display:none;">💻</button>
+          <button class="icon-btn" id="storageBtn" title="Data Bank" style="display:none;">🗄️</button>
+          <button class="icon-btn" id="memoryBtn" title="Luna Memory" style="display:none;">🧠</button>
           <div id="modelHealthDot" title="Model Health: Good" style="width:12px; height:12px; border-radius:50%; background-color:#00ff64; margin-top:12px; margin-left:4px; margin-right:4px; box-shadow: 0 0 10px #00ff64; transition: all 0.3s;"></div>
-          <button class="icon-btn" id="historyBtn" title="Past Conversations">📜</button>
+          <button class="icon-btn" id="historyBtn" title="Past Conversations" style="display:none;">📜</button>
           <button class="icon-btn" id="toVoiceBtn" title="Voice Mode">🎙️</button>
-          <button class="icon-btn" id="browserLaunchBtn" title="Web Browser">🌐</button>
+          <button class="icon-btn" id="browserLaunchBtn" title="Web Browser" style="display:none;">🌐</button>
           <button class="icon-btn" id="clearBtn" title="Clear Chat">🧹</button>
-          <button class="icon-btn" id="wallpaperBtn" title="Choose Wallpaper">🖼️</button>
+          <button class="icon-btn" id="wallpaperBtn" title="Choose Wallpaper" style="display:none;">🖼️</button>
         </div>
         <button class="icon-btn" id="settingsBtn" title="Settings">⚙️</button>
       </div>
@@ -212,7 +212,7 @@ window.toggleAuth = function(e) {
             </div>
           </div>
           <div class="input-footer" style="display:flex; justify-content:space-between; align-items:center; width:100%; padding: 4px 10px 0 10px;">
-            <div id="contextToggles" style="display:flex; gap:15px; font-size: 0.8rem; color: var(--dim);">
+            <div id="contextToggles" style="display:none;">
               <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" id="includeIDEContext"> Include IDE Context</label>
               <label style="cursor:pointer; display:flex; align-items:center; gap:5px;"><input type="checkbox" id="includeVisionContext"> Include Screen Vision</label>
             </div>
