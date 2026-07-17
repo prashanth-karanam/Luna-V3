@@ -860,20 +860,24 @@ async function callCloudAPI(userText, sysPrompt, keyIndex = -1, modelOverride = 
   ];
 
   let url, body, headers;
+  let requestModel = actualModel;
   
   if (key.startsWith('sk-')) {
     // OpenAI
+    if (!requestModel.includes('gpt') && !requestModel.includes('o1')) requestModel = 'gpt-4o-mini';
     url = 'https://api.openai.com/v1/chat/completions';
     headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` };
-    body = { model: actualModel, messages: messages, temperature: 0.7 };
+    body = { model: requestModel, messages: messages, temperature: 0.7 };
   } else if (key.startsWith('gsk_')) {
     // Groq
+    if (!requestModel.includes('llama') && !requestModel.includes('mixtral') && !requestModel.includes('gemma')) requestModel = 'llama3-8b-8192';
     url = 'https://api.groq.com/openai/v1/chat/completions';
     headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` };
-    body = { model: actualModel, messages: messages, temperature: 0.7 };
+    body = { model: requestModel, messages: messages, temperature: 0.7 };
   } else {
     // Gemini
-    url = `https://generativelanguage.googleapis.com/v1beta/models/${actualModel}:generateContent?key=${key}`;
+    if (!requestModel.includes('gemini')) requestModel = 'gemini-1.5-flash';
+    url = `https://generativelanguage.googleapis.com/v1beta/models/${requestModel}:generateContent?key=${key}`;
     headers = { 'Content-Type': 'application/json' };
     
     const contents = [
