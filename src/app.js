@@ -106,11 +106,12 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
   CRITICAL RULES:
   * To open an app: ONLY use luna_tools.open_app('Name'). Call it ONCE. Do NOT loop or retry.
   * To navigate to a website: ONLY use luna_tools.open_url('https://site.com'). NEVER try to type URLs manually into the browser.
-  * SMART ROUTING: Construct direct URLs when possible to skip UI navigation (e.g., use 'https://instagram.com/direct/inbox' for DMs, 'https://youtube.com/results?search_query=x' for YT search, 'https://x.com/compose/tweet' for tweeting).
+  * SMART ROUTING: Construct direct URLs when possible to skip UI navigation (e.g., use 'https://youtube.com/results?search_query=x' for YT search).
+  * CRITICAL: NEVER write python scripts (EXECUTE_PYTHON) or use open_url for WhatsApp, Instagram, Telegram, or Discord messaging! You MUST strictly use the SEND_MESSAGE tool for these platforms to utilize the Ghost Browser.
   * NEVER use tab_and_check_until to verify if an app opened. It does NOT do that.
   * Keep code simple: 1-3 lines max. No loops, no complex scripts.
   * Example: {"thought": "Opening Edge", "tool": "EXECUTE_PYTHON", "code": "import luna_tools\\nluna_tools.open_app('Microsoft Edge')"}
-  * Example: {"thought": "Going to IG", "tool": "EXECUTE_PYTHON", "code": "import luna_tools\\nluna_tools.open_url('https://instagram.com', browser='opera')"}
+  * Example: {"thought": "Going to site", "tool": "EXECUTE_PYTHON", "code": "import luna_tools\\nluna_tools.open_url('https://google.com')"}
   * Example: {"thought": "Typing hello", "tool": "EXECUTE_PYTHON", "code": "import luna_tools\\nluna_tools.type_text('hello', press_enter=True)"}`;
   }
 
