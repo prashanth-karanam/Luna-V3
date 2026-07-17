@@ -1075,6 +1075,16 @@ if ($('settingsBtn')) $('settingsBtn').addEventListener('click', openSettings);
 if ($('voiceSettingsBtn')) $('voiceSettingsBtn').addEventListener('click', openSettings);
 if ($('closeSettings')) $('closeSettings').addEventListener('click', closeSettings);
 if ($('cancelSettings')) $('cancelSettings').addEventListener('click', closeSettings);
+
+if ($('ghostLoginBtn')) {
+    $('ghostLoginBtn').addEventListener('click', () => {
+        if (window.electronAPI) {
+            window.electronAPI.executeCode('cmd', 'start python luna_message.py login');
+            if (typeof showToast === 'function') showToast('Launching Ghost Browser...', false);
+        }
+    });
+}
+
 if ($('saveSettings')) $('saveSettings').addEventListener('click', () => {
   cfg.geminiKey = ($('masterApiKey') && $('masterApiKey').value.trim() !== '') ? $('masterApiKey').value.trim() : $('geminiKey').value.trim();
   cfg.geminiKeys = ($('masterApiPool') && $('masterApiPool').value.trim() !== '') ? $('masterApiPool').value.trim() : ($('geminiKeys') ? $('geminiKeys').value.trim() : '');

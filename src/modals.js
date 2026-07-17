@@ -196,6 +196,12 @@ const LUNA_MODALS = {
             <div id="masterKeyStatus" style="font-size:0.8rem; margin-top:8px; color:var(--dim);">Status: Not configured</div>
           </div>
           
+          <div class="setting-item" style="flex-direction:column; align-items:flex-start; margin-bottom:20px; background:rgba(0,0,0,0.3); padding:15px; border-radius:12px; border:1px solid rgba(0,180,255,0.2);">
+            <div style="font-size:0.85rem; color:var(--blue); font-weight:bold; margin-bottom:5px;">GHOST BROWSER AUTHENTICATION</div>
+            <p style="color:var(--dim); font-size:0.8rem; line-height:1.4; margin-bottom:10px;">Launch the invisible backend browser in visible mode to pre-login to websites (Instagram, Twitter, etc.) before using silent automations.</p>
+            <button id="ghostLoginBtn" class="btn-outline" style="width:100%; padding:10px; border-radius:8px; font-size:0.85rem; border-color:var(--blue); color:var(--blue);">Launch Ghost Browser</button>
+          </div>
+          
           <button id="toggleAdvancedApiBtn" style="background:transparent; border:1px solid rgba(255,255,255,0.2); color:var(--dim); padding:8px 15px; border-radius:8px; cursor:pointer; font-size:0.85rem; margin-bottom:15px; width:100%; text-align:left;">â–¶ Show Advanced API Settings (Individual Providers)</button>
           
           <div id="advancedApiSection" style="display:none;">
