@@ -1076,9 +1076,9 @@ if ($('voiceSettingsBtn')) $('voiceSettingsBtn').addEventListener('click', openS
 if ($('closeSettings')) $('closeSettings').addEventListener('click', closeSettings);
 if ($('cancelSettings')) $('cancelSettings').addEventListener('click', closeSettings);
 if ($('saveSettings')) $('saveSettings').addEventListener('click', () => {
-  cfg.geminiKey = $('geminiKey').value.trim();
-  cfg.geminiKeys = $('geminiKeys') ? $('geminiKeys').value.trim() : '';
-  cfg.geminiModel = $('geminiModel').value;
+  cfg.geminiKey = ($('masterApiKey') && $('masterApiKey').value.trim() !== '') ? $('masterApiKey').value.trim() : $('geminiKey').value.trim();
+  cfg.geminiKeys = ($('masterApiPool') && $('masterApiPool').value.trim() !== '') ? $('masterApiPool').value.trim() : ($('geminiKeys') ? $('geminiKeys').value.trim() : '');
+  cfg.geminiModel = ($('masterApiModel') && $('masterApiModel').value.trim() !== '') ? $('masterApiModel').value : $('geminiModel').value;
   cfg.groqKey = $('groqKey').value.trim();
   cfg.groqKeys = $('groqKeys') ? $('groqKeys').value.trim() : '';
   cfg.groqModel = $('groqModel').value;
