@@ -5,6 +5,7 @@
   "main": "main.js",
   "scripts": {
     "start": "vite build && electron .",
+    "boot": "electron .",
     "dist": "electron-builder",
     "dev": "vite",
     "build": "vite build"
@@ -26,5 +27,8 @@
       "target": "portable",
       "icon": "icon.ico"
     }
+  },
+  "dependencies": {
+    "systeminformation": "^5.31.17"
   }
 }

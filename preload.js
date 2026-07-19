@@ -6,7 +6,7 @@ contextBridge.exposeInMainWorld('api', {
     if (validChannels.includes(channel)) ipcRenderer.send(channel, data);
   },
   receive: (channel, func) => {
-    let validChannels = ["fromMain"];
+    let validChannels = ["fromMain", "sys-metrics", "terminal-stream"];
     if (validChannels.includes(channel)) {
       ipcRenderer.on(channel, (event, ...args) => func(...args));
     }

@@ -1,11 +1,13 @@
 # 🌙 Luna V3 - Advanced Hybrid AI Assistant
 **Submission for OpenAI Build Week**
 
+🚀 **Engineered & Orchestrated with the assistance of OpenAI 5.6**
+
 Luna is a highly advanced, fully autonomous desktop AI assistant.
 
 > [!NOTE] 
 > **Important Note for Hackathon Judges:**
-> The baseline UI shell (IDE, Wallpaper Manager, Voice Mode UI) is ported from my previous personal "Luna V2" project. However, the **entire AI Engine, Brain Architecture, and Automation Stack** was engineered from scratch exclusively during this Hackathon timeline, orchestrated with the assistance of GPT Codex 5.6.
+> The baseline UI shell (IDE, Wallpaper Manager, Voice Mode UI) is ported from my previous personal "Luna V2" project. However, the **entire AI Engine, Brain Architecture, and Automation Stack** was engineered from scratch exclusively during this Hackathon timeline, orchestrated with the unparalleled reasoning of **OpenAI 5.6**.
 
 ## 🚀 Hackathon Features (Built during this event)
 

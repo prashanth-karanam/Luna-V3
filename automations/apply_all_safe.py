@@ -1,0 +1,267 @@
+import re
+
+# 1. Update index.html
+with open('index.html', 'r', encoding='utf-8') as f:
+    html = f.read()
+
+# 1a. Move "Luna may make mistakes" text inside .chat-wrapper
+html = html.replace('<span>Luna may make mistakes</span>', '')
+button_bar_end = r'(<div class="right-buttons">\s*<input id="mic" type="checkbox" />\s*<label for="mic">.*?</label>\s*<button class="send-btn" id="sendBtn" title="Send message" disabled>\s*<svg.*?</svg>\s*</button>\s*</div>\s*</div>)'
+new_footer_text = r'\1\n            <div style="font-size: 0.65rem; color: #888; text-align: center; width: 100%; margin-top: 6px;">Luna may make mistakes</div>'
+html = re.sub(button_bar_end, new_footer_text, html, flags=re.DOTALL)
+
+# 1b. Replace the send button with the animated React button HTML
+new_button_html = '''<button class="send-btn button" id="sendBtn" title="Send message" disabled>
+  <div class="outline"></div>
+  <div class="state state--default">
+    <div class="icon">
+      <svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <g style="filter: url(#shadow)">
+          <path d="M14.2199 21.63C13.0399 21.63 11.3699 20.8 10.0499 16.83L9.32988 14.67L7.16988 13.95C3.20988 12.63 2.37988 10.96 2.37988 9.78001C2.37988 8.61001 3.20988 6.93001 7.16988 5.60001L15.6599 2.77001C17.7799 2.06001 19.5499 2.27001 20.6399 3.35001C21.7299 4.43001 21.9399 6.21001 21.2299 8.33001L18.3999 16.82C17.0699 20.8 15.3999 21.63 14.2199 21.63ZM7.63988 7.03001C4.85988 7.96001 3.86988 9.06001 3.86988 9.78001C3.86988 10.5 4.85988 11.6 7.63988 12.52L10.1599 13.36C10.3799 13.43 10.5599 13.61 10.6299 13.83L11.4699 16.35C12.3899 19.13 13.4999 20.12 14.2199 20.12C14.9399 20.12 16.0399 19.13 16.9699 16.35L19.7999 7.86001C20.3099 6.32001 20.2199 5.06001 19.5699 4.41001C18.9199 3.76001 17.6599 3.68001 16.1299 4.19001L7.63988 7.03001Z" fill="currentColor" />
+          <path d="M10.11 14.4C9.92005 14.4 9.73005 14.33 9.58005 14.18C9.29005 13.89 9.29005 13.41 9.58005 13.12L13.16 9.53C13.45 9.24 13.93 9.24 14.22 9.53C14.51 9.82 14.51 10.3 14.22 10.59L10.64 14.18C10.5 14.33 10.3 14.4 10.11 14.4Z" fill="currentColor" />
+        </g>
+        <defs>
+          <filter id="shadow">
+            <feDropShadow dx="0" dy="1" stdDeviation="0.6" flood-opacity="0.5" />
+          </filter>
+        </defs>
+      </svg>
+    </div>
+    <p>
+      <span style="--i: 0">S</span><span style="--i: 1">e</span><span style="--i: 2">n</span><span style="--i: 3">d</span>
+    </p>
+  </div>
+  <div class="state state--sent">
+    <div class="icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" height="1em" width="1em" stroke-width="0.5px" stroke="black">
+        <g style="filter: url(#shadow)">
+          <path fill="currentColor" d="M12 22.75C6.07 22.75 1.25 17.93 1.25 12C1.25 6.07 6.07 1.25 12 1.25C17.93 1.25 22.75 6.07 22.75 12C22.75 17.93 17.93 22.75 12 22.75ZM12 2.75C6.9 2.75 2.75 6.9 2.75 12C2.75 17.1 6.9 21.25 12 21.25C17.1 21.25 21.25 17.1 21.25 12C21.25 6.9 17.1 2.75 12 2.75Z" />
+          <path fill="currentColor" d="M10.5795 15.5801C10.3795 15.5801 10.1895 15.5001 10.0495 15.3601L7.21945 12.5301C6.92945 12.2401 6.92945 11.7601 7.21945 11.4701C7.50945 11.1801 7.98945 11.1801 8.27945 11.4701L10.5795 13.7701L15.7195 8.6301C16.0095 8.3401 16.4895 8.3401 16.7795 8.6301C17.0695 8.9201 17.0695 9.4001 16.7795 9.6901L11.1095 15.3601C10.9695 15.5001 10.7795 15.5801 10.5795 15.5801Z" />
+        </g>
+      </svg>
+    </div>
+    <p>
+      <span style="--i: 5">S</span><span style="--i: 6">e</span><span style="--i: 7">n</span><span style="--i: 8">t</span>
+    </p>
+  </div>
+</button>'''
+html = re.sub(r'<button class="send-btn" id="sendBtn"[^>]*>.*?</button>', new_button_html, html, flags=re.DOTALL)
+
+with open('index.html', 'w', encoding='utf-8') as f:
+    f.write(html)
+
+# 2. Update style.css safely (append only)
+with open('style.css', 'r', encoding='utf-8') as f:
+    css = f.read()
+
+# Make sure .input-area padding is removed for the lowered chat box
+if '.input-area {' in css:
+    css = re.sub(r'\.input-area \{[^}]+\}', '.input-area { flex-shrink: 0; padding: 0 18px 0px; background: transparent; border-top: none; }', css)
+
+# Get the glassmorphic grey UI styling
+with open('update_css_gray.py', 'r', encoding='utf-8') as f:
+    update_script = f.read()
+
+gray_css = update_script.split('new_css = """')[1].split('"""')[0]
+# We don't need the .send-btn rules from gray_css because we have the .button rules
+gray_css = re.sub(r'\.send-btn \{.*?\}', '', gray_css, flags=re.DOTALL)
+gray_css = re.sub(r'\.send-btn > svg \{.*?\}', '', gray_css, flags=re.DOTALL)
+gray_css = re.sub(r'\.send-btn:hover \{.*?\}', '', gray_css, flags=re.DOTALL)
+gray_css = re.sub(r'\.send-btn:hover > svg \{.*?\}', '', gray_css, flags=re.DOTALL)
+
+# Now add our custom overrides (hidden orb, footer, gap)
+overrides = """
+.input-footer { display: none !important; }
+#chatOrbArea { display: none !important; }
+"""
+
+# Now add the animated button CSS
+button_css = """
+button.send-btn.button {
+  --primary: #00b4ff;
+  --neutral-1: #3a3a40;
+  --neutral-2: #252528;
+  --radius: 20px;
+
+  cursor: pointer;
+  border-radius: var(--radius) !important;
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.8) !important;
+  border: none !important;
+  box-shadow: 0 0.5px 0.5px 1px rgba(255, 255, 255, 0.1),
+    0 5px 10px rgba(0, 0, 0, 0.4) !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  position: relative !important;
+  transition: all 0.3s ease !important;
+  min-width: 100px !important;
+  padding: 0 1rem !important;
+  height: 2.2rem !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.85rem !important;
+  font-weight: 600 !important;
+  color: #ececec !important;
+  background: var(--neutral-2) !important;
+  overflow: hidden !important;
+}
+button.send-btn.button:disabled {
+  opacity: 0.4 !important;
+  pointer-events: none !important;
+  filter: grayscale(100%) !important;
+}
+button.send-btn.button:hover {
+  transform: scale(1.02) !important;
+  box-shadow: 0 0 1px 2px rgba(255, 255, 255, 0.15),
+    0 10px 20px rgba(0, 0, 0, 0.5) !important;
+}
+button.send-btn.button:active {
+  transform: scale(0.98) !important;
+}
+button.send-btn.button:after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+  border: 1px solid transparent;
+  background: linear-gradient(var(--neutral-1), var(--neutral-2)) padding-box,
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.15), rgba(255, 255, 255, 0.05)) border-box;
+  z-index: 0;
+  transition: all 0.4s ease;
+}
+button.send-btn.button:hover::after {
+  transform: scale(1.05, 1.1);
+}
+button.send-btn.button::before {
+  content: "";
+  inset: 2px 2px 2px 2px;
+  position: absolute;
+  background: linear-gradient(to top, var(--neutral-1), var(--neutral-2));
+  border-radius: 20px;
+  filter: blur(0.5px);
+  z-index: 1;
+}
+button.send-btn.button .state p {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  position: relative;
+  z-index: 3;
+}
+button.send-btn.button .state .icon {
+  position: absolute;
+  left: 10px;
+  top: 0;
+  bottom: 0;
+  margin: auto;
+  transform: scale(1.1);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  z-index: 3;
+}
+button.send-btn.button .state .icon svg {
+  overflow: visible;
+  fill: currentColor;
+}
+
+/* Outline */
+button.send-btn.button .outline {
+  position: absolute;
+  border-radius: inherit;
+  overflow: hidden;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.4s ease;
+  inset: -1px;
+}
+button.send-btn.button .outline::before {
+  content: "";
+  position: absolute;
+  inset: -100%;
+  background: conic-gradient(from 180deg, transparent 60%, var(--primary) 80%, transparent 100%);
+  animation: spin 2s linear infinite;
+  animation-play-state: paused;
+}
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+button.send-btn.button:hover .outline { opacity: 1; }
+button.send-btn.button:hover .outline::before { animation-play-state: running; }
+
+/* Letters */
+button.send-btn.button .state p span {
+  display: block;
+  opacity: 0;
+  animation: slideDown 0.8s ease forwards calc(var(--i) * 0.03s);
+}
+button.send-btn.button:hover p span {
+  opacity: 1;
+  animation: wave 0.5s ease forwards calc(var(--i) * 0.02s);
+}
+button.send-btn.button:focus p span, button.send-btn.button:active p span {
+  opacity: 1;
+  animation: disapear 0.6s ease forwards calc(var(--i) * 0.03s);
+}
+@keyframes wave {
+  30% { opacity: 1; transform: translateY(2px); }
+  50% { opacity: 1; transform: translateY(-2px); color: var(--primary); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideDown {
+  0% { opacity: 0; transform: translateY(-10px) translateX(2px) rotate(-45deg); color: var(--primary); filter: blur(2px); }
+  30% { opacity: 1; transform: translateY(2px); filter: blur(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+@keyframes disapear {
+  from { opacity: 1; }
+  to { opacity: 0; transform: translateX(5px) translateY(10px); color: var(--primary); filter: blur(2px); }
+}
+
+/* Plane */
+button.send-btn.button .state--default .icon svg { animation: land 0.6s ease forwards; }
+button.send-btn.button:hover .state--default .icon { transform: rotate(45deg) scale(1.1); }
+button.send-btn.button:focus .state--default svg, button.send-btn.button:active .state--default svg { animation: takeOff 0.8s linear forwards; }
+button.send-btn.button:focus .state--default .icon, button.send-btn.button:active .state--default .icon { transform: rotate(0) scale(1.1); }
+@keyframes takeOff {
+  0% { opacity: 1; }
+  60% { opacity: 1; transform: translateX(30px) rotate(45deg) scale(1.5); }
+  100% { opacity: 0; transform: translateX(80px) rotate(45deg) scale(0); }
+}
+@keyframes land {
+  0% { transform: translateX(-30px) translateY(15px) rotate(-50deg) scale(1.5); opacity: 0; filter: blur(2px); }
+  100% { transform: translateX(0) translateY(0) rotate(0); opacity: 1; filter: blur(0); }
+}
+
+/* Contrail */
+button.send-btn.button .state--default .icon:before {
+  content: ""; position: absolute; top: 50%; height: 2px; width: 0; left: -2px;
+  background: linear-gradient(to right, transparent, rgba(255, 255, 255, 0.5));
+}
+button.send-btn.button:focus .state--default .icon:before, button.send-btn.button:active .state--default .icon:before { animation: contrail 0.8s linear forwards; }
+@keyframes contrail {
+  0% { width: 0; opacity: 1; }
+  8% { width: 10px; }
+  60% { opacity: 0.7; width: 40px; }
+  100% { opacity: 0; width: 80px; }
+}
+
+/* States */
+button.send-btn.button .state { padding-left: 20px; z-index: 3; display: flex; position: relative; }
+button.send-btn.button .state--sent { display: none; }
+button.send-btn.button .state--sent svg { transform: scale(1.1); margin-right: 4px; }
+button.send-btn.button:focus .state--default, button.send-btn.button:active .state--default { position: absolute; }
+button.send-btn.button:focus .state--sent, button.send-btn.button:active .state--sent { display: flex; }
+button.send-btn.button:focus .state--sent span, button.send-btn.button:active .state--sent span { opacity: 0; animation: slideDown 0.8s ease forwards calc(var(--i) * 0.2s); }
+button.send-btn.button:focus .state--sent .icon svg, button.send-btn.button:active .state--sent .icon svg { opacity: 0; animation: appear 1.2s ease forwards 0.8s; }
+@keyframes appear {
+  0% { opacity: 0; transform: scale(2) rotate(-40deg); color: var(--primary); filter: blur(2px); }
+  30% { opacity: 1; transform: scale(0.8); filter: blur(1px); }
+  50% { opacity: 1; transform: scale(1.1); filter: blur(0); }
+  100% { opacity: 1; transform: scale(1); }
+}
+"""
+
+with open('style.css', 'w', encoding='utf-8') as f:
+    f.write(css + "\n\n" + gray_css + "\n\n" + overrides + "\n\n" + button_css)

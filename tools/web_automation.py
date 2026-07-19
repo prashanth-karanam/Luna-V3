@@ -30,7 +30,8 @@ def main():
         page = None
         
         try:
-            browser = p.chromium.connect_over_cdp("http://localhost:9222")
+            # Add a 1000ms timeout. If Chrome isn't running, we don't want to wait 30 seconds to find out!
+            browser = p.chromium.connect_over_cdp("http://localhost:9222", timeout=1000)
             context = browser.contexts[0]
             if len(context.pages) > 0:
                 page = context.pages[0]
@@ -184,7 +185,7 @@ def main():
             
         finally:
             if browser:
-                browser.close()
+                browser.disconnect()
 
 if __name__ == "__main__":
     main()

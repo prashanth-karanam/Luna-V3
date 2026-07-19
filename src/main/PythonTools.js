@@ -12,7 +12,7 @@ function initPythonTools(appRoot) {
         args.push(trait, value);
       }
       
-      const cmd = `python "${path.join(appRoot, 'personality_engine.py')}" ${args.join(' ')}`;
+      const cmd = `python "${path.join(appRoot, 'core/personality_engine.py')}" ${args.join(' ')}`;
       exec(cmd, (error, stdout, stderr) => {
         try {
           if (stdout) {

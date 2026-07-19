@@ -127,6 +127,14 @@ app.whenReady().then(() => {
 
   const win = createWindow();
   
+  // Start background system hardware monitoring
+  const { startSystemMonitor } = require('./src/main/SystemMonitor');
+  startSystemMonitor(win);
+  
+  // Start terminal output stream to frontend
+  const { startTerminalLogger } = require('./src/main/TerminalLogger');
+  startTerminalLogger(win);
+  
   // Start dummy audio listener and Whisper server
   try {
     const { silentSpawn } = require('./utils/silentExec');

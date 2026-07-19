@@ -143,7 +143,7 @@ class CodeRunner {
         case 'python':
           // Wrap in exec() to handle multi-line code, then print end marker
           const escaped = code.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
-          wrappedCode = `exec('''${escaped}''')\nprint('${endMarker}')\n`;
+          wrappedCode = `import sys, os\nsys.path.append(os.path.abspath('core'))\nexec('''${escaped}''')\nprint('${endMarker}')\n`;
           break;
         case 'javascript':
           wrappedCode = `${code}\nconsole.log('${endMarker}')\n`;
