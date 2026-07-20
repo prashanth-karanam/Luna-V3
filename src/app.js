@@ -3767,12 +3767,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const setupModalTrigger = (radio, modal) => {
             if(radio && modal) {
-                radio.addEventListener('change', (e) => {
-                    if (e.target.checked) {
-                        modal.classList.remove('hidden');
-                        setTimeout(() => { e.target.checked = false; }, 100);
-                    }
-                });
+                radio.addEventListener('click', (e) => { modal.classList.remove('hidden'); setTimeout(() => { e.target.checked = false; }, 100); });
                 const closers = modal.querySelectorAll('.modal-closer, .cyber-modal-overlay');
                 closers.forEach(closer => {
                     closer.addEventListener('click', () => {
@@ -3979,5 +3974,6 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDashLayout();
     }
 });
+
 
 

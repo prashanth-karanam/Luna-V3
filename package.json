@@ -29,6 +29,8 @@
     }
   },
   "dependencies": {
+    "jsdom": "^29.1.1",
+    "selenium-webdriver": "^4.46.0",
     "systeminformation": "^5.31.17"
   }
 }
