@@ -23,6 +23,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
   runCommand: (cmd) => ipcRenderer.invoke('run-command', cmd),
   clipboardAction: (action, text) => ipcRenderer.invoke('clipboard-action', action, text),
 
+  // LLM Routing APIs
+  startLLMStream: (payload) => ipcRenderer.invoke('llm-generate-stream', payload),
+  onLLMToken: (callback) => { ipcRenderer.removeAllListeners('llm-token'); ipcRenderer.on('llm-token', (e, chunk) => callback(chunk)); },
+  onLLMEnd: (callback) => { ipcRenderer.removeAllListeners('llm-end'); ipcRenderer.on('llm-end', () => callback()); },
+  onLLMError: (callback) => { ipcRenderer.removeAllListeners('llm-error'); ipcRenderer.on('llm-error', (e, err) => callback(err)); },
+
   readFile: (path) => ipcRenderer.invoke('read-file', path),
   openChrome: (data) => ipcRenderer.invoke('open-chrome', data),
   runPython: (script, args) => ipcRenderer.invoke('run-python', script, args),
@@ -49,6 +55,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   clipboardRead: () => ipcRenderer.invoke('clipboard-read'),
   clipboardWrite: (text) => ipcRenderer.invoke('clipboard-write', text),
   screenInfo: () => ipcRenderer.invoke('screen-info'),
+  getActiveWindow: () => ipcRenderer.invoke('active-window'),
   osNotify: (title, body) => ipcRenderer.invoke('os-notify', title, body)
 });
 

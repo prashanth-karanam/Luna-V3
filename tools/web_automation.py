@@ -93,6 +93,11 @@ def main():
                 page.fill(selector, text)
                 result["message"] = f"Typed into {selector}"
                 
+            elif action == "press":
+                key = sys.argv[2]
+                page.keyboard.press(key)
+                result["message"] = f"Pressed {key}"
+                
             elif action == "read":
                 text = page.locator("body").inner_text()
                 if len(text) > 4000:

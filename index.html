@@ -50,10 +50,7 @@ window.toggleAuth = function(e) {
 </head>
 <body>
 
-  <!-- Dynamic Wallpaper Layer -->
-  <div id="wallpaperLayer" class="wallpaper-layer"></div>
-  <div id="wallpaperLayer2" class="wallpaper-layer" style="opacity:0;"></div>
-
+  <!-- Background removed for Minimalist Blackboard UI -->
   <!-- Neural Pulse Background -->
   <div class="neural-bg" id="neuralBg">
     <div class="neural-pulse" id="neuralPulse"></div>
@@ -138,31 +135,36 @@ window.toggleAuth = function(e) {
       
       <!-- COL 1 -->
       <div class="dash-col dash-col-1">
-        <div class="placeholder-card" style="height: 200px;">Daily News<br><span style="font-size:0.6rem;opacity:0.7">(updating every 3 hrs)</span></div>
+        <div id="dailyNewsCard" style="height: auto; min-height: 200px; display: flex; flex-direction: column; justify-content: flex-start; text-align: left; padding: 15px 0; overflow: hidden; position: relative;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 5px;">
+                <h3 style="margin:0; font-size: 0.95rem; font-family: 'Inter', sans-serif; font-weight: 600; color: var(--text);">Daily News <span id="newsKeywordDisplay" style="font-size: 0.7rem; color: var(--dim); font-weight: normal; margin-left: 5px;">(Technology)</span></h3>
+                <span style="font-size: 0.7rem; color: var(--green);">Live <span id="newsRefreshIcon" style="cursor:pointer;" onclick="fetchNews()">🔄</span></span>
+            </div>
+            <div id="newsFeedContent" style="display: flex; flex-direction: column; gap: 10px; font-size: 0.85rem; overflow-y: auto;">
+                <div style="color: var(--gray); font-style: italic;">Loading neural feed...</div>
+            </div>
+        </div>
         
-        <div class="menu-wrapper" style="flex: 1; display: flex; flex-direction: column;">
-          <div class="menu-container" style="flex: 0.7;">
-                        <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 15px;">
-              <input type="checkbox" id="menuToggle" style="display: none;" />
-              <label for="menuToggle" class="menu-btn" style="margin-bottom: 0;">
-                  <span class="icon">
-                      <svg viewBox="0 0 175 80" width="30" height="30">
-                          <rect width="80" height="15" fill="var(--blue)" rx="10"></rect>
-                          <rect y="30" width="80" height="15" fill="var(--blue)" rx="10"></rect>
-                          <rect y="60" width="80" height="15" fill="var(--blue)" rx="10"></rect>
-                      </svg>
-                  </span>
-                  <span class="text">MENU</span>
-              </label>
+        <div class="menu-wrapper" style="flex: 1; display: flex; flex-direction: column; gap: 24px;">
+          <div class="menu-container" style="flex: 1; display: flex; flex-direction: column; padding: 20px 0;">
+            <div style="display: flex; gap: 15px; align-items: center; margin-bottom: 25px;">
+              <span class="icon">
+                  <svg viewBox="0 0 175 80" width="30" height="30">
+                      <rect width="80" height="15" fill="var(--blue)" rx="0"></rect>
+                      <rect y="30" width="80" height="15" fill="var(--blue)" rx="0"></rect>
+                      <rect y="60" width="80" height="15" fill="var(--blue)" rx="0"></rect>
+                  </svg>
+              </span>
+              <span style="font-family:'Orbitron', sans-serif; font-size: 0.9rem; letter-spacing: 2px; color: var(--text);">LUNA OS</span>
               
               <!-- Mini Controls placed in the gap -->
-                            <div class="mini-controls" style="display: flex; flex-direction: row; gap: 12px; align-items: center; margin-left: 10px;">
+              <div class="mini-controls" style="display: flex; flex-direction: row; gap: 12px; align-items: center; margin-left: auto;">
                 <!-- Network Dot -->
-                <div id="networkIndicator" title="Network Status: Online" style="width: 16px; height: 16px; border-radius: 50%; background-color: var(--green); box-shadow: 0 0 14px 2px var(--green); transition: all 0.3s ease; border: 1.5px solid rgba(255,255,255,0.4);"></div>
+                <div id="networkIndicator" title="Network Status: Online" style="width: 8px; height: 8px; border-radius: 50%; background-color: var(--green); box-shadow: 0 0 10px var(--green); transition: all 0.3s ease;"></div>
                 
                 <!-- Model Toggle -->
-                <select id="chatEngineToggle" class="glass-select">
-                  <option value="qwythos-9b:latest">Qwythos</option>
+                <select id="chatEngineToggle" style="background: transparent; border: none; color: var(--dim); outline: none; font-size: 0.8rem; cursor: pointer;">
+                  <option value="phi3:mini:latest">Phi</option>
                   <option value="phi-mini:latest">Phi Mini</option>
                   <option value="mistral:latest">Mistral</option>
                   <option value="llama3:latest">Llama 3</option>
@@ -170,62 +172,128 @@ window.toggleAuth = function(e) {
               </div>
             </div>
             
-                        <div class="flip-card">
-              <div class="flip-card-inner">
-                <div class="flip-card-front">
-                  <div style="text-align:center; opacity: 0.6;">
-                    <svg viewBox="0 0 175 80" width="60" height="60" style="margin-bottom: 15px;">
-                        <rect width="80" height="15" fill="var(--blue)" rx="10"></rect>
-                        <rect y="30" width="80" height="15" fill="var(--blue)" rx="10"></rect>
-                        <rect y="60" width="80" height="15" fill="var(--blue)" rx="10"></rect>
+            <article class="menu-article" style="display: flex; flex-direction: column; gap: 15px;">
+              <label for="m-dashboard" class="menu-item-minimal">
+                <input class="menu-radio" type="radio" name="path" id="m-dashboard" checked />
+                <svg class="menu-icon-minimal" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M4 13h6a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1zm-1 7a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v4zm10 0a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v7zm1-10h6a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1z"></path></svg>
+                <span class="menu-label-minimal">Dashboard</span>
+              </label>
+              <label for="m-profile" class="menu-item-minimal">
+                <input class="menu-radio" type="radio" name="path" id="m-profile" />
+                <svg class="menu-icon-minimal" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm0 8a3 3 0 1 1 3-3 3 3 0 0 1-3 3zm9 11v-1a7 7 0 0 0-7-7h-4a7 7 0 0 0-7 7v1h2v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1z"></path></svg>
+                <span class="menu-label-minimal">Profile</span>
+              </label>
+              <label for="m-messages" class="menu-item-minimal">
+                <input class="menu-radio" type="radio" name="path" id="m-messages" />
+                <svg class="menu-icon-minimal" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M5 18v3.766l1.515-.909L11.277 18H16c1.103 0 2-.897 2-2V8c0-1.103-.897-2-2-2H4c-1.103 0-2 .897-2 2v8c0 1.103.897 2 2 2h1zM4 8h12v8h-5.277L7 18.234V16H4V8z"></path><path d="M20 2H8c-1.103 0-2 .897-2 2h12c1.103 0 2 .897 2 2v8c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2z"></path></svg>
+                <span class="menu-label-minimal">Conversations</span>
+              </label>
+              <label for="m-help" class="menu-item-minimal">
+                <input class="menu-radio" type="radio" name="path" id="m-help" />
+                <svg class="menu-icon-minimal" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M11.953 2C6.465 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.493 2 11.953 2zM12 20c-4.411 0-8-3.589-8-8s3.567-8 7.953-8C16.391 4 20 7.589 20 12s-3.589 8-8 8z"></path><path d="M11 7h2v7h-2zm0 8h2v2h-2z"></path></svg>
+                <span class="menu-label-minimal">Help</span>
+              </label>
+              <label for="m-settings" class="menu-item-minimal">
+                <input class="menu-radio" type="radio" name="path" id="m-settings" />
+                <svg class="menu-icon-minimal" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 24 24"><path d="M12 16c2.206 0 4-1.794 4-4s-1.794-4-4-4-4 1.794-4 4 1.794 4 4 4zm0-6c1.084 0 2 .916 2 2s-.916 2-2 2-2-.916-2-2 .916-2 2-2z"></path><path d="m2.845 16.136 1 1.73c.531.917 1.809 1.261 2.73.73l.529-.306A8.1 8.1 0 0 0 9 19.402V20c0 1.103.897 2 2 2h2c1.103 0 2-.897 2-2v-.598a8.132 8.132 0 0 0 1.896-1.111l.529.306c.923.53 2.198.188 2.731-.731l.999-1.729a2.001 2.001 0 0 0-.731-2.732l-.505-.292a7.718 7.718 0 0 0 0-2.224l.505-.292a2.002 2.002 0 0 0 .731-2.732l-.999-1.729c-.531-.92-1.808-1.265-2.731-.732l-.529.306A8.1 8.1 0 0 0 15 4.598V4c0-1.103-.897-2-2-2h-2c-1.103 0-2 .897-2 2v.598a8.132 8.132 0 0 0-1.896 1.111l-.529-.306c-.924-.531-2.2-.187-2.731.732l-.999 1.729a2.001 2.001 0 0 0 .731 2.732l.505.292a7.683 7.683 0 0 0 0 2.223l-.505.292a2.003 2.003 0 0 0-.731 2.733zm3.326-2.758A5.703 5.703 0 0 1 6 12c0-.462.058-.926.17-1.378a.999.999 0 0 0-.47-1.108l-1.123-.65.998-1.729 1.145.662a.997.997 0 0 0 1.188-.142 6.071 6.071 0 0 1 2.384-1.399A1 1 0 0 0 11 5.3V4h2v1.3a1 1 0 0 0 .708.956 6.083 6.083 0 0 1 2.384 1.399.999.999 0 0 0 1.188.142l1.144-.661 1 1.729-1.124.649a1 1 0 0 0-.47 1.108c.112.452.17.916.17 1.378 0 .461-.058.925-.171 1.378a1 1 0 0 0 .471 1.108l1.123.649-.998 1.729-1.145-.661a.996.996 0 0 0-1.188.142 6.071 6.071 0 0 1-2.384 1.399A1 1 0 0 0 13 18.7l.002 1.3H11v-1.3a1 1 0 0 0-.708-.956 6.083 6.083 0 0 1-2.384-1.399.992.992 0 0 0-1.188-.141l-1.144.662-1-1.729 1.124-.651a1 1 0 0 0 .471-1.108z"></path></svg>
+                <span class="menu-label-minimal">Settings</span>
+              </label>
+            </article>
+          </div>
+          <div style="flex: 0.4; display: flex; flex-direction: column; padding: 15px 0;">
+            <style>
+              .tool-card {
+                width: 100%;
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                box-sizing: border-box;
+              }
+              .tool-card-stage {
+                flex: 1;
+                background: transparent;
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 12px;
+                padding: 15px 0;
+              }
+              .tool-icon-row {
+                display: flex;
+                flex-direction: row;
+                gap: 15px;
+                align-items: center;
+                justify-content: center;
+                z-index: 10;
+              }
+              .tool-icon-circle {
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255,255,255,0.02);
+                border: 1px solid rgba(255,255,255,0.05);
+                box-shadow: inset 0 0 8px rgba(255,255,255,0.1), 0 10px 15px -5px rgba(0,0,0,0.5);
+                color: white;
+              }
+              .tool-icon-circle.sm { width: 32px; height: 32px; }
+              .tool-icon-circle.md { width: 48px; height: 48px; }
+              .tool-icon-circle.lg { width: 64px; height: 64px; }
+              .tool-icon-circle svg { width: 50%; height: 50%; }
+              .tool-icon-circle.md svg { width: 60%; height: 60%; }
+              .tool-icon-circle.lg svg { width: 70%; height: 70%; }
+              .tool-title { font-size: 0.9rem; font-weight: 600; color: #fff; margin-top: 10px; margin-bottom: 2px; }
+              .tool-desc { font-size: 0.7rem; color: #888; line-height: 1.4; margin: 0; padding-bottom: 5px; }
+            </style>
+            
+            <div class="tool-card">
+              <div class="tool-card-stage">
+                <!-- Top Row: ChatGPT -->
+                <div class="tool-icon-row">
+                  <div class="tool-icon-circle lg">
+                    <svg viewBox="0 0 28 28" fill="currentColor">
+                      <path d="M26.153 11.46a6.888 6.888 0 0 0-.608-5.73 7.117 7.117 0 0 0-3.29-2.93 7.238 7.238 0 0 0-4.41-.454 7.065 7.065 0 0 0-2.41-1.742A7.15 7.15 0 0 0 12.514 0a7.216 7.216 0 0 0-4.217 1.346 7.061 7.061 0 0 0-2.603 3.539 7.12 7.12 0 0 0-2.734 1.188A7.012 7.012 0 0 0 .966 8.268a6.979 6.979 0 0 0 .88 8.273 6.89 6.89 0 0 0 .607 5.729 7.117 7.117 0 0 0 3.29 2.93 7.238 7.238 0 0 0 4.41.454 7.061 7.061 0 0 0 2.409 1.742c.92.404 1.916.61 2.923.604a7.215 7.215 0 0 0 4.22-1.345 7.06 7.06 0 0 0 2.605-3.543 7.116 7.116 0 0 0 2.734-1.187 7.01 7.01 0 0 0 1.993-2.196 6.978 6.978 0 0 0-.884-8.27Zm-10.61 14.71c-1.412 0-2.505-.428-3.46-1.215.043-.023.119-.064.168-.094l5.65-3.22a.911.911 0 0 0 .464-.793v-7.86l2.389 1.36a.087.087 0 0 1 .046.065v6.508c0 2.952-2.491 5.248-5.257 5.248ZM4.062 21.354a5.17 5.17 0 0 1-.635-3.516c.042.025.115.07.168.1l5.65 3.22a.928.928 0 0 0 .928 0l6.898-3.93v2.72a.083.083 0 0 1-.034.072l-5.711 3.255a5.386 5.386 0 0 1-4.035.522 5.315 5.315 0 0 1-3.23-2.443ZM2.573 9.184a5.283 5.283 0 0 1 2.768-2.301V13.515a.895.895 0 0 0 .464.793l6.897 3.93-2.388 1.36a.087.087 0 0 1-.08.008L4.52 16.349a5.262 5.262 0 0 1-2.475-3.185 5.192 5.192 0 0 1 .527-3.98Zm19.623 4.506-6.898-3.93 2.388-1.36a.087.087 0 0 1 .08-.008l5.713 3.255a5.28 5.28 0 0 1 2.054 2.118 5.19 5.19 0 0 1-.488 5.608 5.314 5.314 0 0 1-2.39 1.742v-6.633a.896.896 0 0 0-.459-.792Zm2.377-3.533a7.973 7.973 0 0 0-.168-.099l-5.65-3.22a.93.93 0 0 0-.928 0l-6.898 3.93V8.046a.083.083 0 0 1 .034-.072l5.712-3.251a5.375 5.375 0 0 1 5.698.241 5.262 5.262 0 0 1 1.865 2.28c.39.92.506 1.93.335 2.913ZM9.631 15.009l-2.39-1.36a.083.083 0 0 1-.046-.065V7.075c.001-.997.29-1.973.832-2.814a5.297 5.297 0 0 1 2.231-1.935 5.382 5.382 0 0 1 5.659.72 4.89 4.89 0 0 0-.168.093l-5.65 3.22a.913.913 0 0 0-.465.793l-.003 7.857Zm1.297-2.76L14 10.5l3.072 1.75v3.5L14 17.499l-3.072-1.75v-3.5Z"></path>
                     </svg>
-                    <p style="font-family:'Orbitron', sans-serif; font-size: 0.9rem; letter-spacing: 2px; color: var(--blue);">LUNA OS</p>
                   </div>
                 </div>
-                <div class="flip-card-back">
-              <article class="menu-article">
-                <label for="m-dashboard" class="menu-item">
-                  <input class="menu-radio" type="radio" name="path" id="m-dashboard" checked />
-                  <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M4 13h6a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1zm-1 7a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-4a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v4zm10 0a1 1 0 0 0 1 1h6a1 1 0 0 0 1-1v-7a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v7zm1-10h6a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1h-6a1 1 0 0 0-1 1v5a1 1 0 0 0 1 1z"></path></svg>
-                  <span class="menu-label">Dashboard</span>
-                </label>
-                <label for="m-profile" class="menu-item">
-                  <input class="menu-radio" type="radio" name="path" id="m-profile" />
-                  <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 2a5 5 0 1 0 5 5 5 5 0 0 0-5-5zm0 8a3 3 0 1 1 3-3 3 3 0 0 1-3 3zm9 11v-1a7 7 0 0 0-7-7h-4a7 7 0 0 0-7 7v1h2v-1a5 5 0 0 1 5-5h4a5 5 0 0 1 5 5v1z"></path></svg>
-                  <span class="menu-label">Profile</span>
-                </label>
-                <label for="m-messages" class="menu-item">
-                  <input class="menu-radio" type="radio" name="path" id="m-messages" />
-                  <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M5 18v3.766l1.515-.909L11.277 18H16c1.103 0 2-.897 2-2V8c0-1.103-.897-2-2-2H4c-1.103 0-2 .897-2 2v8c0 1.103.897 2 2 2h1zM4 8h12v8h-5.277L7 18.234V16H4V8z"></path><path d="M20 2H8c-1.103 0-2 .897-2 2h12c1.103 0 2 .897 2 2v8c1.103 0 2-.897 2-2V4c0-1.103-.897-2-2-2z"></path></svg>
-                  <span class="menu-label">Conversations</span>
-                </label>
-                <label for="m-help" class="menu-item">
-                  <input class="menu-radio" type="radio" name="path" id="m-help" />
-                  <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M11.953 2C6.465 2 2 6.486 2 12s4.486 10 10 10 10-4.486 10-10S17.493 2 11.953 2zM12 20c-4.411 0-8-3.589-8-8s3.567-8 7.953-8C16.391 4 20 7.589 20 12s-3.589 8-8 8z"></path><path d="M11 7h2v7h-2zm0 8h2v2h-2z"></path></svg>
-                  <span class="menu-label">Help</span>
-                </label>
-                <label for="m-settings" class="menu-item">
-                  <input class="menu-radio" type="radio" name="path" id="m-settings" />
-                  <svg class="menu-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path d="M12 16c2.206 0 4-1.794 4-4s-1.794-4-4-4-4 1.794-4 4 1.794 4 4 4zm0-6c1.084 0 2 .916 2 2s-.916 2-2 2-2-.916-2-2 .916-2 2-2z"></path><path d="m2.845 16.136 1 1.73c.531.917 1.809 1.261 2.73.73l.529-.306A8.1 8.1 0 0 0 9 19.402V20c0 1.103.897 2 2 2h2c1.103 0 2-.897 2-2v-.598a8.132 8.132 0 0 0 1.896-1.111l.529.306c.923.53 2.198.188 2.731-.731l.999-1.729a2.001 2.001 0 0 0-.731-2.732l-.505-.292a7.718 7.718 0 0 0 0-2.224l.505-.292a2.002 2.002 0 0 0 .731-2.732l-.999-1.729c-.531-.92-1.808-1.265-2.731-.732l-.529.306A8.1 8.1 0 0 0 15 4.598V4c0-1.103-.897-2-2-2h-2c-1.103 0-2 .897-2 2v.598a8.132 8.132 0 0 0-1.896 1.111l-.529-.306c-.924-.531-2.2-.187-2.731.732l-.999 1.729a2.001 2.001 0 0 0 .731 2.732l.505.292a7.683 7.683 0 0 0 0 2.223l-.505.292a2.003 2.003 0 0 0-.731 2.733zm3.326-2.758A5.703 5.703 0 0 1 6 12c0-.462.058-.926.17-1.378a.999.999 0 0 0-.47-1.108l-1.123-.65.998-1.729 1.145.662a.997.997 0 0 0 1.188-.142 6.071 6.071 0 0 1 2.384-1.399A1 1 0 0 0 11 5.3V4h2v1.3a1 1 0 0 0 .708.956 6.083 6.083 0 0 1 2.384 1.399.999.999 0 0 0 1.188.142l1.144-.661 1 1.729-1.124.649a1 1 0 0 0-.47 1.108c.112.452.17.916.17 1.378 0 .461-.058.925-.171 1.378a1 1 0 0 0 .471 1.108l1.123.649-.998 1.729-1.145-.661a.996.996 0 0 0-1.188.142 6.071 6.071 0 0 1-2.384 1.399A1 1 0 0 0 13 18.7l.002 1.3H11v-1.3a1 1 0 0 0-.708-.956 6.083 6.083 0 0 1-2.384-1.399.992.992 0 0 0-1.188-.141l-1.144.662-1-1.729 1.124-.651a1 1 0 0 0 .471-1.108z"></path></svg>
-                  <span class="menu-label">Settings</span>
-                </label>
-              </article>
+                <!-- Bottom Row: Github & Gemini -->
+                <div class="tool-icon-row">
+                  <div class="tool-icon-circle md">
+                    <svg viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M9.75 14a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 .75-.75Zm4.5 0a.75.75 0 0 1 .75.75v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 .75-.75Z"></path>
+                      <path d="M12 2c2.214 0 4.248.657 5.747 1.756.136.099.268.204.397.312.584.235 1.077.546 1.474.952.85.869 1.132 2.037 1.132 3.368 0 .368-.014.733-.052 1.086l.633 1.478.043.022A4.75 4.75 0 0 1 24 15.222v1.028c0 .529-.309.987-.565 1.293-.28.336-.636.653-.966.918a13.84 13.84 0 0 1-1.299.911l-.024.015-.006.004-.039.025c-.223.135-.45.264-.68.386-.46.245-1.122.571-1.941.895C16.845 21.344 14.561 22 12 22c-2.561 0-4.845-.656-6.479-1.303a19.046 19.046 0 0 1-1.942-.894 14.081 14.081 0 0 1-.535-.3l-.144-.087-.04-.025-.006-.004-.024-.015a13.16 13.16 0 0 1-1.299-.911 6.913 6.913 0 0 1-.967-.918C.31 17.237 0 16.779 0 16.25v-1.028a4.75 4.75 0 0 1 2.626-4.248l.043-.022.633-1.478a10.195 10.195 0 0 1-.052-1.086c0-1.331.282-2.498 1.132-3.368.397-.406.89-.717 1.474-.952.129-.108.261-.213.397-.312C7.752 2.657 9.786 2 12 2Zm-8 9.654v6.669a17.59 17.59 0 0 0 2.073.98C7.595 19.906 9.686 20.5 12 20.5c2.314 0 4.405-.594 5.927-1.197a17.59 17.59 0 0 0 2.073-.98v-6.669l-.038-.09c-.046.061-.095.12-.145.177-.793.9-2.057 1.259-3.782 1.259-1.59 0-2.738-.544-3.508-1.492a4.323 4.323 0 0 1-.355-.508h-.344a4.323 4.323 0 0 1-.355.508C10.704 12.456 9.555 13 7.965 13c-1.725 0-2.989-.359-3.782-1.259a3.026 3.026 0 0 1-.145-.177Zm6.309-1.092c.445-.547.708-1.334.851-2.301.057-.357.087-.718.09-1.079v-.031c-.001-.762-.166-1.26-.43-1.568l-.008-.01c-.341-.391-1.046-.689-2.533-.529-1.505.163-2.347.537-2.824 1.024-.462.473-.705 1.18-.705 2.32 0 .605.044 1.087.135 1.472.092.384.231.672.423.89.365.413 1.084.75 2.657.75.91 0 1.527-.223 1.964-.564.14-.11.268-.235.38-.374Zm2.504-2.497c.136 1.057.403 1.913.878 2.497.442.545 1.134.938 2.344.938 1.573 0 2.292-.337 2.657-.751.384-.435.558-1.151.558-2.361 0-1.14-.243-1.847-.705-2.319-.477-.488-1.318-.862-2.824-1.025-1.487-.161-2.192.139-2.533.529-.268.308-.437.808-.438 1.578v.02c.002.299.023.598.063.894Z"></path>
+                    </svg>
+                  </div>
+                  <div class="tool-icon-circle md">
+                    <svg viewBox="0 0 287.56 191" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <linearGradient id="blue-grad" x1="0" y1="0" x2="0" y2="1">
+                          <stop stop-color="#0064e1" offset="0"></stop>
+                          <stop stop-color="#0082fb" offset="1"></stop>
+                        </linearGradient>
+                      </defs>
+                      <path d="M31.06,126c0,11,2.41,19.41,5.56,24.51A19,19,0,0,0,53.19,160c8.1,0,15.51-2,29.79-21.76,11.44-15.83,24.92-38,34-52l15.36-23.6c10.67-16.39,23-34.61,37.18-47C181.07,5.6,193.54,0,206.09,0c21.07,0,41.14,12.21,56.5,35.11,16.81,25.08,25,56.67,25,89.27,0,19.38-3.82,33.62-10.32,44.87C271,180.13,258.72,191,238.13,191V160c17.63,0,22-16.2,22-34.74,0-26.42-6.16-55.74-19.73-76.69-9.63-14.86-22.11-23.94-35.84-23.94-14.85,0-26.8,11.2-40.23,31.17-7.14,10.61-14.47,23.54-22.7,38.13l-9.06,16c-18.2,32.27-22.81,39.62-31.91,51.75C84.74,183,71.12,191,53.19,191c-21.27,0-34.72-9.21-43-23.09C3.34,156.6,0,141.76,0,124.85Z" fill="url(#blue-grad)"></path>
+                    </svg>
+                  </div>
                 </div>
               </div>
+              <div>
+                <p class="tool-title">Active AI Stack</p>
+                <p class="tool-desc">Powered by these core technologies to build and compile Luna.<br/>Specially integrated and orchestrated for the v3 architecture.</p>
+              </div>
             </div>
-          </div>
-          <div class="menu-footer" style="flex: 0.3;">
-            <div class="placeholder-card" style="height: 100%;">Other Work (30%)</div>
           </div>
         </div>
       </div>
 
       <!-- COL 2 -->
       <div class="dash-col dash-col-2">
-        <div class="placeholder-card" style="height: 300px;">Orb Animation Here</div>
-        <div class="placeholder-card telemetry-card" style="flex: 1; flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 20px;">
+        <div class="telemetry-card" style="flex: 1; flex-direction: column; align-items: stretch; justify-content: flex-start; padding: 20px 0;">
           <style>
-            .telemetry-card { padding: 20px !important; background: rgba(10,12,15,0.7) !important; border: 1px solid rgba(255,255,255,0.08) !important; backdrop-filter: blur(20px) !important; box-shadow: none !important; }
+            .telemetry-card { padding: 20px 0 !important; background: transparent !important; border: none !important; backdrop-filter: none !important; box-shadow: none !important; border-left: 1px solid rgba(255,255,255,0.05) !important; padding-left: 20px !important; }
             .telemetry-card::before { display: none !important; }
             .sys-title { font-size: 0.75rem; color: #888; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 10px; font-family: 'Inter', sans-serif; text-shadow: none; }
             .sys-metric { margin-bottom: 16px; display: flex; flex-direction: column; gap: 6px; }
@@ -263,9 +331,122 @@ window.toggleAuth = function(e) {
             <div class="sys-header" style="font-size: 0.6rem; color: #555;"><span>Host: <span id="sys-host-val" style="color:#777;">---</span></span> <span>OS: <span id="sys-os-val" style="color:#777;">---</span></span></div>
           </div>
         </div>
-        <div class="placeholder-card terminal-card" style="height: 150px; padding: 15px; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; background: rgba(5,5,8,0.9); border: 1px solid rgba(255,255,255,0.05); overflow: hidden;">
+
+        <!-- ─── AI MOOD ORB ─── -->
+        <style>
+          .ai-orb-container {
+              flex: 1;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              position: relative;
+              width: 100%;
+              min-height: 200px;
+              margin-top: -30px; /* Move it a bit upper */
+              overflow: hidden;
+              
+              /* Default Mood Variables (Idle) */
+              --orb-color-1: #0984e3;
+              --orb-color-2: #6c5ce7;
+              --orb-color-3: #00cec9;
+              --orb-speed: 10s;
+              --orb-scale: 1;
+              --ring-opacity: 0;
+              transition: all 1s ease-in-out;
+          }
+          
+          .orb-boundary {
+              position: relative;
+              width: 220px; /* Enlarge size */
+              height: 220px;
+              filter: blur(8px) contrast(1.1); /* Decrease blur so it's sharper */
+              transform: scale(var(--orb-scale));
+              transition: transform 1s cubic-bezier(0.25, 1, 0.5, 1);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+          }
+          
+          .orb-blob {
+              position: absolute;
+              border-radius: 50%;
+              mix-blend-mode: screen;
+              opacity: 0.8;
+          }
+          
+          .orb-blob.blob-1 {
+              width: 100%; height: 100%;
+              background: radial-gradient(circle at center, var(--orb-color-1) 0%, transparent 70%);
+              animation: orb-spin var(--orb-speed) linear infinite;
+              top: 0; left: 0;
+          }
+          .orb-blob.blob-2 {
+              width: 85%; height: 85%;
+              background: radial-gradient(circle at center, var(--orb-color-2) 0%, transparent 70%);
+              animation: orb-spin calc(var(--orb-speed) * 0.8) ease-in-out infinite reverse;
+              top: 10%; left: -10%;
+          }
+          .orb-blob.blob-3 {
+              width: 90%; height: 90%;
+              background: radial-gradient(circle at center, var(--orb-color-3) 0%, transparent 70%);
+              animation: orb-spin calc(var(--orb-speed) * 1.2) ease-in-out infinite;
+              top: -5%; left: 15%;
+          }
+          
+          .orb-ring {
+              position: absolute;
+              width: 240px;
+              height: 240px;
+              border: 2px solid var(--orb-color-1);
+              border-radius: 50%;
+              opacity: var(--ring-opacity);
+              transform: scale(0.8);
+              transition: opacity 0.5s;
+              animation: orb-ping 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+              pointer-events: none;
+          }
+          
+          @keyframes orb-spin {
+              0% { transform: rotate(0deg) translate(15px) rotate(0deg); }
+              100% { transform: rotate(360deg) translate(15px) rotate(-360deg); }
+          }
+          
+          @keyframes orb-ping {
+              75%, 100% { transform: scale(1.5); opacity: 0; }
+          }
+          
+          /* Mood States */
+          .ai-orb-container.mood-idle {
+              --orb-color-1: #0984e3; --orb-color-2: #6c5ce7; --orb-color-3: #00cec9;
+              --orb-speed: 12s; --orb-scale: 1; --ring-opacity: 0;
+          }
+          .ai-orb-container.mood-processing {
+              --orb-color-1: #fd79a8; --orb-color-2: #a29bfe; --orb-color-3: #00b894;
+              --orb-speed: 2.5s; --orb-scale: 1.15; --ring-opacity: 0;
+          }
+          .ai-orb-container.mood-listening {
+              --orb-color-1: #00cec9; --orb-color-2: #81ecec; --orb-color-3: #74b9ff;
+              --orb-speed: 6s; --orb-scale: 1.25; --ring-opacity: 0.6;
+          }
+          .ai-orb-container.mood-error {
+              --orb-color-1: #d63031; --orb-color-2: #ff7675; --orb-color-3: #e17055;
+              --orb-speed: 4s; --orb-scale: 1; --ring-opacity: 0;
+          }
+        </style>
+        
+        <div class="ai-orb-container mood-idle" id="luna-orb">
+          <div class="orb-boundary">
+            <div class="orb-blob blob-1"></div>
+            <div class="orb-blob blob-2"></div>
+            <div class="orb-blob blob-3"></div>
+          </div>
+          <div class="orb-ring"></div>
+        </div>
+        <!-- ─── END AI MOOD ORB ─── -->
+
+        <div class="terminal-card" style="height: 150px; padding: 15px 0; display: flex; flex-direction: column; align-items: flex-start; justify-content: flex-start; overflow: hidden;">
           <style>
-            .terminal-card { font-family: 'Consolas', 'Courier New', monospace; box-shadow: inset 0 0 10px rgba(0,0,0,0.8) !important; }
+            .terminal-card { font-family: 'Consolas', 'Courier New', monospace; background: transparent !important; box-shadow: none !important; border: none !important; border-left: 1px solid rgba(255,255,255,0.05) !important; padding-left: 20px !important; }
             .terminal-card::before { display: none !important; }
             .terminal-header { font-size: 0.65rem; color: #555; text-transform: uppercase; margin-bottom: 10px; width: 100%; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; display: flex; justify-content: space-between; }
             .terminal-body { flex: 1; width: 100%; overflow-y: auto; overflow-x: hidden; font-size: 0.7rem; color: #ccc; line-height: 1.4; display: flex; flex-direction: column; scroll-behavior: smooth; }
@@ -493,9 +674,9 @@ window.toggleAuth = function(e) {
         <ol style="color:#ddd; padding-left:20px; font-size:0.9rem; line-height:1.6;">
           <li><b>Download Ollama:</b> Install <a href="https://ollama.com/download" target="_blank" style="color:var(--blue);">Ollama for Windows</a>.</li>
           <li><b>Open Command Prompt:</b> Press Win+R, type <code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:4px;">cmd</code>, and press Enter.</li>
-          <li><b>Download the Brain:</b> Paste this command and hit Enter to download qwythos-9b (this may take a few minutes depending on your internet speed):<br><code style="background:#000; padding:8px; border-radius:6px; color:#00ff64; display:block; margin:8px 0; font-family:monospace; user-select:all; border:1px solid rgba(0,255,100,0.2);">ollama run qwythos-9b</code></li>
+          <li><b>Download the Brain:</b> Paste this command and hit Enter to download phi3:mini (this may take a few minutes depending on your internet speed):<br><code style="background:#000; padding:8px; border-radius:6px; color:#00ff64; display:block; margin:8px 0; font-family:monospace; user-select:all; border:1px solid rgba(0,255,100,0.2);">ollama run phi3:mini</code></li>
           <li><b>Fix Windows Blocking (CORS):</b> If Luna says 'Connection Failed', Windows might be blocking it. Open Command Prompt <b>as Administrator</b> and run:<br><code style="background:#000; padding:8px; border-radius:6px; color:#ff6464; display:block; margin:8px 0; font-family:monospace; user-select:all; border:1px solid rgba(255,100,100,0.2);">setx OLLAMA_ORIGINS "*"</code><br>Then <b>restart your PC</b> or completely close and reopen the Ollama app from the system tray.</li>
-          <li><b>Configure Luna:</b> Inside Luna, go to Settings (Gear Icon) -> Luna AI -> Enable "Use Local Model" and type <code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:4px;">qwythos-9b</code> in the Model Name box.</li>
+          <li><b>Configure Luna:</b> Inside Luna, go to Settings (Gear Icon) -> Luna AI -> Enable "Use Local Model" and type <code style="background:rgba(255,255,255,0.1); padding:2px 4px; border-radius:4px;">phi3:mini</code> in the Model Name box.</li>
         </ol>
         <button id="confirmLocalBtn" class="btn-outline" style="width:100%; padding:14px; border-radius:12px; margin-top:15px; color:#00ff64; border-color:#00ff64;" onclick="useLocalModel=true; document.getElementById('localModelSetupScreen').classList.add('hidden'); if(typeof updateTierBadge==='function') updateTierBadge();">I've done this, let's connect!</button>
         </div>
@@ -513,6 +694,36 @@ window.toggleAuth = function(e) {
   <script src="./src/modals.js"></script>
 
   <!-- CYBER SETTINGS MODAL (TABBED) -->
+  <!-- PROFILE MODAL -->
+  <div id="cyberProfileModal" class="cyber-modal hidden">
+    <div class="cyber-modal-overlay"></div>
+    <div class="cyber-modal-content">
+      <div class="neon-nut nut-tl"></div>
+      <div class="neon-nut nut-tr"></div>
+      <div class="neon-nut nut-bl"></div>
+      <div class="neon-nut nut-br"></div>
+      
+      <div class="cyber-modal-header">
+        <h2>USER PROFILE & DATA</h2>
+        <button class="cyber-close-btn modal-closer">&times;</button>
+      </div>
+
+      <div class="cyber-modal-body">
+        <div style="margin-bottom:20px;">
+          <h3 style="color:var(--blue); margin-bottom:10px;">GATHERED INTELLIGENCE</h3>
+          <p style="color:var(--gray); font-size:0.85rem; margin-bottom:15px;">Luna autonomously gathers this data to personalize your experience. You can edit or clear it at any time.</p>
+          
+          <div class="input-group">
+            <label>Primary Interest (News Feed)</label>
+            <input type="text" id="profileNewsInterest" class="cyber-input" style="width:100%; box-sizing: border-box;" placeholder="e.g. Technology" />
+          </div>
+          
+          <button class="cyber-btn primary-btn" style="width:100%; margin-top:15px;" onclick="saveProfileData()">SAVE PROFILE</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="cyberSettingsModal" class="cyber-modal hidden">
     <div class="cyber-modal-overlay"></div>
     <div class="cyber-modal-content">
@@ -543,12 +754,31 @@ window.toggleAuth = function(e) {
             <label>Default AI Model</label>
             <select class="cyber-select">
               <option>phi3:mini</option>
-              <option>qwythos-9b:latest</option>
+              <option>phi3:mini:latest</option>
             </select>
           </div>
           <div class="setting-group">
             <label>Base System Prompt</label>
-            <textarea class="cyber-textarea" rows="4">You are Luna, an advanced AI operating within the Luna OS environment. Be helpful, concise, and futuristic.</textarea>
+            <textarea class="cyber-textarea" rows="4" id="opt-system-prompt">You are Luna, an advanced AI operating within the Luna OS environment. Be helpful, concise, and futuristic.</textarea>
+          </div>
+          <div class="setting-group">
+            <label>Messaging Mode</label>
+            <select class="cyber-select" id="opt-messaging-mode">
+              <option value="browser">Native Browser Send (Fast PyAutoGUI)</option>
+              <option value="invisible">Invisible Send (Selenium Background)</option>
+            </select>
+            <script>
+              document.addEventListener('DOMContentLoaded', () => {
+                  const mm = document.getElementById('opt-messaging-mode');
+                  if (mm) {
+                      mm.value = localStorage.getItem('luna_messagingMode') || 'browser';
+                      mm.addEventListener('change', (e) => {
+                          localStorage.setItem('luna_messagingMode', e.target.value);
+                          if (window.cfg) window.cfg.messagingMode = e.target.value;
+                      });
+                  }
+              });
+            </script>
           </div>
         </div>
 
@@ -784,14 +1014,16 @@ window.toggleAuth = function(e) {
         const msg = args.map(String).join(' ');
         if (msg.includes('[LUNA-DEBUG]')) {
            let readableMsg = msg.replace('[LUNA-DEBUG]', '').trim();
-           if (readableMsg.includes('callAI entered')) readableMsg = "Analyzing user intent and checking variables...";
-           else if (readableMsg.includes('Checking web_automation')) readableMsg = "Polling active browser automation state...";
-           else if (readableMsg.includes('Action/Complex Task')) readableMsg = "Complex task detected. Routing to Heavy Model...";
-           else if (readableMsg.includes('Normal chat')) readableMsg = "Simple task detected. Routing to Fast Model...";
-           else if (readableMsg.includes('Dispatching to activeEngine')) readableMsg = "Transmitting synthesized prompt to Neural Engine...";
-           else if (readableMsg.includes('AI reply received')) readableMsg = "Neural Engine replied. Decoding JSON payload...";
-           else if (readableMsg.includes('FAST PATH: open')) readableMsg = "Zero-latency shortcut triggered. Bypassing LLM...";
-           else if (readableMsg.includes('Calling')) readableMsg = "Awaiting response network stream...";
+           if (readableMsg.includes('callAI entered')) readableMsg = "Thinking about what you just said...";
+           else if (readableMsg.includes('Checking web_automation')) readableMsg = "Checking if the browser is open...";
+           else if (readableMsg.includes('Action/Complex Task')) readableMsg = "This looks tricky. Asking the smart cloud brain...";
+           else if (readableMsg.includes('Normal chat')) readableMsg = "This is easy. Handling it instantly...";
+           else if (readableMsg.includes('Dispatching to activeEngine')) readableMsg = "Sending the question over to the brain...";
+           else if (readableMsg.includes('AI reply received')) readableMsg = "Got an answer! Reading it now...";
+           else if (readableMsg.includes('FAST PATH: open')) readableMsg = "Shortcut taken. I already know what to do...";
+           else if (readableMsg.includes('Calling')) readableMsg = "Waiting for a reply...";
+           else if (readableMsg.includes('Analyzing conversation for core interests')) readableMsg = "Quietly figuring out what topics you like...";
+           else if (readableMsg.includes('Detected new interest:')) readableMsg = "Oh! I noticed you are interested in something new...";
            window.logBrain(readableMsg);
         } else if (msg.includes('[LUNA]')) {
            window.logBrain(msg.replace('[LUNA]', '').trim());

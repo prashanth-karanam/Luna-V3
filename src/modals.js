@@ -104,12 +104,12 @@ const LUNA_MODALS = {
           </label>
         </div>
         <div class="setting-row">
-          <label>Router Model (Fast) <span style="font-size:0.7rem; color:var(--dim); font-weight:normal;">(e.g. qwythos-9b)</span></label>
-          <input type="text" id="routerModelInput" placeholder="qwythos-9b" style="background:var(--bg-900); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:#fff; width:150px; text-align:right;">
+          <label>Router Model (Fast) <span style="font-size:0.7rem; color:var(--dim); font-weight:normal;">(e.g. phi3:mini)</span></label>
+          <input type="text" id="routerModelInput" placeholder="phi3:mini" style="background:var(--bg-900); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:#fff; width:150px; text-align:right;">
         </div>
         <div class="setting-row">
-          <label>Heavy Lifter Model (Code) <span style="font-size:0.7rem; color:var(--dim); font-weight:normal;">(e.g. qwythos-9b)</span></label>
-          <input type="text" id="heavyModelInput" placeholder="qwythos-9b" style="background:var(--bg-900); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:#fff; width:150px; text-align:right;">
+          <label>Heavy Lifter Model (Code) <span style="font-size:0.7rem; color:var(--dim); font-weight:normal;">(e.g. phi3:mini)</span></label>
+          <input type="text" id="heavyModelInput" placeholder="phi3:mini" style="background:var(--bg-900); border:1px solid var(--border); border-radius:8px; padding:6px 10px; color:#fff; width:150px; text-align:right;">
         </div>
         
           <div class="setting-row" id="localBrowserSetting" style="display: none;">
@@ -127,7 +127,7 @@ const LUNA_MODALS = {
            <h4 style="color: var(--green); margin: 0 0 8px 0; font-size: 0.9rem;"><i class="fa-solid fa-circle-info"></i> Local Model Help Desk</h4>
            <ul style="margin: 0; padding-left: 20px; font-size: 0.8rem; color: #ccc; line-height: 1.5;">
              <li><strong>Vision (Optic Nerve):</strong> Requires <code style="background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px;">minicpm-v</code> model installed in Ollama.</li>
-             <li><strong>Main Brain:</strong> Recommended model is <code style="background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px;">qwythos-9b</code> for stability.</li>
+             <li><strong>Main Brain:</strong> Recommended model is <code style="background: rgba(255,255,255,0.1); padding: 2px 4px; border-radius: 4px;">phi3:mini</code> for stability.</li>
              <li><strong>OS Permissions:</strong> Using local models grants Luna access to your file system and screen.</li>
              <li><strong>Fixing Issues:</strong> If Luna is unresponsive, ensure the Ollama app is running in your Windows tray.</li>
            </ul>
@@ -316,7 +316,7 @@ const LUNA_MODALS = {
       <div style="background:rgba(255,255,255,0.03); padding:20px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); margin-bottom:15px;">
         <h3 style="color:#fff; margin-top:0; margin-bottom:10px;">2. Is the Model Pulled?</h3>
         <p style="color:#ddd; font-size:0.9rem; line-height:1.5;">You must download the model before Luna can talk to it. Open your terminal and paste this command:</p>
-        <code style="background:#000; padding:8px; border-radius:6px; color:#ff6464; display:block; margin:8px 0; font-family:monospace; user-select:all; border:1px solid rgba(255,100,100,0.2);">ollama pull qwythos-9b</code>
+        <code style="background:#000; padding:8px; border-radius:6px; color:#ff6464; display:block; margin:8px 0; font-family:monospace; user-select:all; border:1px solid rgba(255,100,100,0.2);">ollama pull phi3:mini</code>
       </div>
 
       <div style="background:rgba(255,255,255,0.03); padding:20px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); margin-bottom:15px;">

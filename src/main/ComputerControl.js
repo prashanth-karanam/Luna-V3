@@ -181,6 +181,39 @@ Write-Output "$($bounds.Width)x$($bounds.Height)|$($cursor.X),$($cursor.Y)"
     } catch (e) { return { ok: false, error: e.message }; }
   });
 
+  // ─── Active Window ───
+  ipcMain.handle('active-window', async () => {
+    try {
+      const script = `
+Add-Type @'
+using System;
+using System.Runtime.InteropServices;
+using System.Text;
+public class WindowHelper {
+    [DllImport("user32.dll")]
+    static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")]
+    static extern int GetWindowText(IntPtr hWnd, StringBuilder text, int count);
+    
+    public static string GetActiveWindowTitle() {
+        const int nChars = 256;
+        StringBuilder Buff = new StringBuilder(nChars);
+        IntPtr handle = GetForegroundWindow();
+        if (GetWindowText(handle, Buff, nChars) > 0)
+        {
+            return Buff.ToString();
+        }
+        return null;
+    }
+}
+'@
+[WindowHelper]::GetActiveWindowTitle()
+`;
+      const title = await runPS(script);
+      return { ok: true, title: title.trim() };
+    } catch (e) { return { ok: false, error: e.message }; }
+  });
+
   // ─── OS Notification ───
   ipcMain.handle('os-notify', async (event, title, body) => {
     try {

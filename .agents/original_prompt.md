@@ -1,62 +1,35 @@
 # Original User Request
 
-## 2026-07-18T11:24:11Z
+## Initial Request — 2026-07-19T08:00:42Z
 
 # Teamwork Project Prompt — Draft
 
-> Status: Ready for launch — awaiting user approval.
-> Goal: Craft prompt → get user approval → delegate to teamwork_preview
+Overhaul the Luna v2 AI assistant into a highly performant, agentic OS system (Luna v3) optimized for a 3B parameter local model. The system must support ultra-low latency token streaming, native system integrations (Selenium browser control, opening apps), and seamless API routing between local models and cloud providers (Gemini, OpenAI, Groq).
 
-**Project Description:** Cleanly sort and refactor the entire `Luna-v2.15.05.26-main` directory into a highly professional, standard architecture. Move hundreds of loose files into organized subfolders so that any senior developer would immediately recognize the logical structure (e.g., separating backend automations, core AI logic, and frontend UI).
-
-Working directory: `C:\Users\PRASANTH\.gemini\antigravity\scratch\Luna\Luna-v2.15.05.26-main`
+Working directory: C:\Users\PRASANTH\.gemini\antigravity\scratch\Luna\Luna-v2.15.05.26-main
 Integrity mode: development
 
 ## Requirements
 
-### R1. Architecture Design
-Analyze the current flat directory structure. Design a clean, senior-level folder architecture (e.g., grouping `automations/`, `core/`, `ui/`, `assets/`, `scripts/`).
+### R1. OS Control & Automation
+Luna must be able to execute actionable tasks such as opening local applications and controlling an automated web browser (e.g., via Selenium) for complex workflows like social media messaging. The agent team has full freedom to architect the best solution for this.
 
-### R2. File Migration
-Move all loose `.py`, `.js`, `.html`, and `.css` files into their new appropriate directories based on your designed architecture.
+### R2. Ultra-Low Latency & Streaming
+The architecture must be optimized for a 3B parameter local model. Implement token-by-token streaming to eliminate perceived UI blocking and wait times.
 
-### R3. Path & Import Restoration
-Carefully rewrite all Python `import` statements, Node.js `require()` calls, HTML `<script>`/`<link>` tags, and shell execution paths (`app.js` spawning python) so that the entire system remains 100% interconnected and functional.
+### R3. API Routing Engine
+Implement a robust API fallback and routing engine that can seamlessly parse and switch between Local API (Ollama), Gemini, OpenAI, and Groq based on the task or availability.
 
-## Acceptance Criteria
+### R4. UI/UX Overhaul
+Refactor the frontend to fix and polish "kiddish" design elements. The UI must support a toggleable full-screen "voice mode" that replaces the standard chat window.
 
-### Execution & Stability
-- [ ] The application successfully boots using `npm run boot` or equivalent startup scripts without crashing due to missing files.
-- [ ] Python automations (like `luna_message.py`) execute successfully from within the Node.js backend without throwing `ModuleNotFoundError` or file path errors.
-- [ ] The final directory structure at the root level contains primarily folders and critical configuration files (e.g., `package.json`, `.env`), eliminating the clutter of loose source files.
-
-## 2026-07-18T12:20:40Z
-
-# Teamwork Project Prompt — Draft
-
-> Status: Step 2 — Resolving Ambiguity
-> Goal: Craft prompt → get user approval → delegate to teamwork_preview
-
-Rebuild the Luna Web OS Dashboard UI layout to be fully responsive. The layout must dynamically collapse and hide specific dashboard panels (using CSS media queries) based on the window's width to ensure the chat always remains usable.
-
-Working directory: `C:\Users\PRASANTH\.gemini\antigravity\scratch\Luna\Luna-v2.15.05.26-main`
-Integrity mode: development
-
-## Requirements
-
-### R1. Desktop Layout (100% - 80%)
-When the window is wide, all dashboard columns should display and stretch proportionally to fill the space without squishing unevenly.
-
-### R2. Medium Layout (~60%)
-When the window shrinks, gracefully hide the secondary panels (like Daily News, Orb Animation, Other Work). Keep only the "Menu", "Device Info", and the main Chat interface visible.
-
-### R3. Minimized Layout (Mobile-size)
-When the window is heavily minimized, hide all dashboard panels. The entire window should be dedicated exclusively to the main Chat interface.
+### R5. Research Reference & Vision Alignment
+The agent team must research the user's "Luna v3" GitHub repo to deeply understand the underlying motivation, motto, and core philosophy behind the project. The final implementation and architectural choices should align with this vision.
 
 ## Acceptance Criteria
 
-### Execution & Verification
-- [ ] Resizing the window to >1000px displays all 3 columns proportionally.
-- [ ] Resizing to ~700px hides non-essential panels, leaving Menu, Device Info, and Chat.
-- [ ] Resizing to <500px hides all side panels, dedicating 100% of the screen width to the Chat interface.
-- [ ] The app boots successfully via `npm run boot` without layout crashes.
+### Automated Verification
+- [ ] The agent team MUST write and provide automated programmatic tests (e.g., Python pytest, JS Jest, or standalone scripts) that verify the core logic.
+- [ ] Automated tests must successfully execute a mock browser automation workflow.
+- [ ] Automated tests must verify that the API routing engine correctly falls back to alternative providers when a mock primary provider fails.
+- [ ] Test scripts must ensure the streaming UI and voice mode toggles function without throwing console errors.

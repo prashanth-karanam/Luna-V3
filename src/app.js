@@ -51,7 +51,7 @@ const getSystemPrompt = (userQuery = '') => {
     let base = `Luna OS | ${date} ${time} | Mode: ${currentMode}\n[USER DIRECTORY]: ${userHome}
 
 [IDENTITY]: You are Luna AI, an advanced physical OS agent created by Sai Prashant. You have full root-level control of this computer, you have eyes (you can see the screen), and hands (you can type and click).
-  RULE 1: You MUST NEVER refer to yourself as "Qwythos" or mention "Empero AI".
+  RULE 1: You MUST NEVER refer to yourself as "Phi" or mention "Empero AI".
   RULE 2: NEVER apologize. NEVER mention that you are a language model, an AI, or tuned by OpenAI/Google. Just DO the task.
   RULE 3: Be ultra-concise. Give exactly the answer requested without huge paragraphs of unnecessary details.
   RULE 4: NEVER explain your internal system mechanisms, how you sent a message, or what tools you used. Just execute them silently.
@@ -83,7 +83,8 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
   if (needsSearch) {
       base += `
 - WEB SEARCHING:
-  * SILENT_SEARCH (Fast API): Use this for ALL factual questions, news, live scores, and weather. Format: ${cfg.showThoughts !== false ? '{"thought": "searching silently", "tool": "SILENT_SEARCH", "query": "your search term"}' : '{"tool": "SILENT_SEARCH", "query": "your search term"}'}`;
+  * SILENT_SEARCH (Fast API): Use this for factual questions, news, and weather when the user just wants an answer. Format: ${cfg.showThoughts !== false ? '{"thought": "searching silently", "tool": "SILENT_SEARCH", "query": "your search term"}' : '{"tool": "SILENT_SEARCH", "query": "your search term"}'}
+  * WEB_SEARCH (Visible Browser): Use this if the user wants to VISUALLY see a website, scorecard, or webpage interface. Format: ${cfg.showThoughts !== false ? '{"thought": "opening browser", "tool": "WEB_SEARCH", "query": "your search term"}' : '{"tool": "WEB_SEARCH", "query": "your search term"}'}`;
   }
    if (needsDesktop) {
       const msgFormat = cfg.showThoughts !== false 
@@ -91,15 +92,15 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
           : '{"response": "Sending now", "tool": "SEND_MESSAGE", "query": "instagram|username|hello"}';
       base += `
 - MESSAGING: Use SEND_MESSAGE for WhatsApp/Instagram/Telegram/Discord. Format: ${msgFormat}
-  The query is: platform|receiver|message. The backend handles everything (including searching for usernames if they aren't saved contacts). NEVER ask the user for a handle, just execute the tool immediately!
-- OPEN APP: luna_tools.open_app('Name') or luna_tools.open_url('https://site.com'). Use EXECUTE_PYTHON tool.
-- DESKTOP: luna_tools.type_text(), press(), hotkey(), click_text(), mouse_click(), scroll().
+  The query is: platform|receiver|message. The backend handles everything.
+- OPEN APP / URL: Use tool "OPEN_APP" (query is app name) or "WEB_GO" (query is full URL). 
+  Format: {"tool": "OPEN_APP", "query": "Microsoft Edge"}
+- DESKTOP AUTOMATION: Use tools "DESKTOP_TYPE", "DESKTOP_PRESS", "WEB_CLICK".
 RULES:
-* SEND_MESSAGE for messaging. EXECUTE_PYTHON with luna_tools for everything else. Never mix them.
-* If user says "open insta", use open_app/open_url. If user says "message X on insta", use SEND_MESSAGE.
+* If the user asks you to search for something, check the SYSTEM CONTEXT first! If the active window is ALREADY a browser (like Microsoft Edge or Chrome) or a file explorer, DO NOT launch a new browser! Simply use DESKTOP_TYPE to type the query into the already focused window, and DESKTOP_PRESS:enter to execute it!
+* If user says "open insta", use OPEN_APP. If user says "message X on insta", use SEND_MESSAGE.
 * On error feedback, retry immediately with correct format. No apologies.
-* On success feedback, briefly confirm success to the user in your "response" (e.g. "Done!"). Do NOT output "...".
-* Keep code to 1-3 lines. No loops.`;
+* On success feedback, briefly confirm success to the user in your "response" (e.g. "Done!").`;
   }
 
   if (needsFileSystem) {
@@ -177,13 +178,14 @@ const cfg = {
   groqKey:      localStorage.getItem('luna_groqKey')      || '',
   groqKeys:     localStorage.getItem('luna_groqKeys')     || '',
   groqModel:    (localStorage.getItem('luna_groqModel') || 'llama-3.1-8b-instant').replace('llama3-8b-8192', 'llama-3.1-8b-instant'),
-  routerModel:  localStorage.getItem('luna_routerModel') || 'qwythos-9b',
-  heavyModel:   localStorage.getItem('luna_heavyModel') || 'qwythos-9b',
+  routerModel:  localStorage.getItem('luna_routerModel') || 'phi3:mini',
+  heavyModel:   localStorage.getItem('luna_heavyModel') || 'phi3:mini',
   engine:       localStorage.getItem('luna_engine')       || 'auto',
   systemPrompt: localStorage.getItem('luna_system')       || '',
   wakeWord:     localStorage.getItem('luna_wakeWord')     || 'wake up luna',
+  messagingMode: localStorage.getItem('luna_messagingMode') || 'browser',
   rememberHistory: localStorage.getItem('luna_rememberHistory') !== 'false',
-  optMode:      localStorage.getItem('luna_optMode')      || 'qwythos-9b:latest',
+  optMode:      localStorage.getItem('luna_optMode')      || 'phi3:mini:latest',
   showThoughts: localStorage.getItem('luna_showThoughts') !== 'false',
   wallpaperBlur: parseInt(localStorage.getItem('luna_wallpaperBlur') || '0', 10),
   voiceEngine:  localStorage.getItem('luna_voiceEngine')  || 'system'
@@ -519,7 +521,39 @@ function wake() {
 if ($('sleepScreen')) $('sleepScreen').addEventListener('click', wake);
 
 // ─── TTS & Audio ──────────────────────────────────────────
-// Old speak function removed - using the new typewriter speak() instead.
+// New typewriter speak() implementation
+window.speak = function(text, onEnd, displayText) {
+    if(!text) { if(onEnd) onEnd(); return; }
+    let displayEl = document.getElementById('voiceReply');
+    if (!displayEl) displayEl = document.getElementById('voiceGreeting');
+    
+    if (displayEl) {
+        displayEl.textContent = '';
+        displayEl.classList.add('active');
+        let txt = displayText || text;
+        let i = 0;
+        let interval = setInterval(() => {
+            displayEl.textContent += txt.charAt(i);
+            i++;
+            if(i >= txt.length) clearInterval(interval);
+        }, 30);
+    }
+
+    if (window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+        let u = new SpeechSynthesisUtterance(text);
+        u.rate = 1.05;
+        u.pitch = 1.1;
+        let voices = window.speechSynthesis.getVoices();
+        let voice = voices.find(v => v.name.includes('Zira') || v.name.includes('Female')) || voices[0];
+        if (voice) u.voice = voice;
+        u.onend = () => { if(onEnd) onEnd(); };
+        u.onerror = () => { if(onEnd) onEnd(); };
+        window.speechSynthesis.speak(u);
+    } else {
+        if(onEnd) setTimeout(onEnd, 1500);
+    }
+};
 
 function speakGreeting() {
   const h = new Date().getHours();
@@ -684,15 +718,13 @@ async function stopListening() {
 }
 
 
-async function callAI(userText, failCount = 0, depth = 0) {
-  console.log('[LUNA-DEBUG] callAI entered. depth=' + depth + ' engine=' + cfg.engine + ' optMode=' + cfg.optMode + ' geminiKey=' + (cfg.geminiKey ? 'SET' : 'EMPTY') + ' groqKey=' + (cfg.groqKey ? 'SET' : 'EMPTY') + ' useLocalModel=' + useLocalModel);
+async function callAI(userText, failCount = 0, depth = 0, onChunk = null) {
+  console.log('[LUNA-DEBUG] callAI entered. depth=' + depth + ' engine=' + cfg.engine + ' optMode=' + cfg.optMode);
   if (window.isAborted) return;
   state.history.push({ role: 'user', text: userText });
   saveHistory();
 
-  // Build system prompt FIRST (used by both local and cloud engines)
   let sysPrompt = "";
-  
   sysPrompt += `[IDENTITY]: You are Luna, a highly empathetic, natural, and conversational assistant created by Sai Prashant.
 Speak naturally like a close human friend. Do not act robotic. Be concise.
 If the user asks you to search, open apps, or do anything on their computer, you MUST use the tool system below. Do NOT make up answers for factual/current-event questions.`;
@@ -700,203 +732,102 @@ If the user asks you to search, open apps, or do anything on their computer, you
   const lowerQuery = userText.toLowerCase();
   
   let tempContext = "";
-  console.log('[LUNA-DEBUG] Checking web_automation status...');
   try {
+    const aw = await window.electronAPI.getActiveWindow();
+    if (aw && aw.ok && aw.title) {
+       tempContext += `[SYSTEM CONTEXT: Foreground Active Window Title is '${aw.title}']\n`;
+    }
     const res = await window.electronAPI.runPython('web_automation.py', ['status']);
-    console.log('[LUNA-DEBUG] web_automation returned:', JSON.stringify(res));
     if (res && res.status === 'open') {
-      tempContext = `[SYSTEM CONTEXT: Automation Browser is OPEN. Active Tab: '${res.title}', URL: '${res.url}']\n`;
+      tempContext += `[SYSTEM CONTEXT: Automation Browser is OPEN. Active Tab: '${res.title}', URL: '${res.url}']\n`;
     } else {
-      tempContext = `[SYSTEM CONTEXT: Automation Browser is CLOSED.]\n`;
+      tempContext += `[SYSTEM CONTEXT: Automation Browser is CLOSED.]\n`;
     }
   } catch(e) { console.log('[LUNA-DEBUG] web_automation error:', e); }
   
-  // ─── APP NICKNAME MAP (shared by fast path + openAppRegex) ───
   const APP_URL_MAP = {
       'insta': 'https://www.instagram.com/', 'instagram': 'https://www.instagram.com/',
       'whatsapp': 'WhatsApp', 'wa': 'WhatsApp', 'telegram': 'Telegram', 'tg': 'Telegram',
-      'discord': 'Discord', 'chrome': 'Google Chrome', 'opera': 'Opera', 'edge': 'Microsoft Edge',
+      'discord': 'Discord', 'chrome': 'Google Chrome', 'google chrome': 'Google Chrome', 
+      'opera': 'Opera', 'edge': 'Microsoft Edge', 'microsoft edge': 'Microsoft Edge', 'ms edge': 'Microsoft Edge',
       'youtube': 'https://www.youtube.com/', 'yt': 'https://www.youtube.com/',
       'twitter': 'https://www.twitter.com/', 'x': 'https://www.twitter.com/',
       'github': 'https://www.github.com/', 'reddit': 'https://www.reddit.com/',
       'spotify': 'Spotify', 'netflix': 'https://www.netflix.com/',
       'notepad': 'Notepad', 'calculator': 'Calculator', 'calc': 'Calculator',
-      'settings': 'Settings', 'explorer': 'explorer', 'files': 'explorer',
-      'paint': 'Paint', 'terminal': 'cmd', 'cmd': 'cmd', 'powershell': 'powershell',
+      'settings': 'Settings', 'explorer': 'explorer', 'files': 'explorer', 'file explorer': 'explorer',
+      'paint': 'Paint', 'terminal': 'cmd', 'cmd': 'cmd', 'powershell': 'powershell', 'command prompt': 'cmd',
+      'vs code': 'Visual Studio Code', 'vscode': 'Visual Studio Code', 'visual studio code': 'Visual Studio Code',
+      'word': 'Word', 'excel': 'Excel', 'powerpoint': 'PowerPoint'
   };
-  const knownAppNames = Object.keys(APP_URL_MAP).join('|');
+  const knownAppNames = Object.keys(APP_URL_MAP).sort((a,b) => b.length - a.length).join('|');
 
-  // ─── ZERO-LATENCY HYBRID ROUTER ───
   const actionRegex = /\b(search|open|app|click|type|file|dir|folder|cmd|run|web|google|news|latest|score|match|weather|download|install|send|message|dm|whatsapp|instagram|insta|telegram|discord|email|mail)\b/i;
   const openAppRegex = new RegExp(`\\b(open|launch)\\b.*\\b(${knownAppNames})\\b`, 'i');
-  let useGemini = false;
-  if ((actionRegex.test(lowerQuery) || depth > 0) && cfg.geminiKey && !openAppRegex.test(lowerQuery)) {
-      useGemini = true;
-      console.log('[LUNA-DEBUG] Regex Router: Action/Complex Task detected. Routing to Cloud API.');
-  } else {
-      console.log('[LUNA-DEBUG] Regex Router: Normal chat or Open-App detected. Routing to Local Phi-3.');
+  
+  let requireCloudAction = false;
+  const hasCloudKey = cfg.geminiKey || cfg.openaiKey || cfg.groqKey;
+  if ((actionRegex.test(lowerQuery) || depth > 0) && hasCloudKey && !openAppRegex.test(lowerQuery)) {
+      requireCloudAction = true;
   }
 
-  // ─── ZERO-LLM FAST PATH: "open [known-app]" commands ───
-  // Matches ONLY known app names. Handles compound requests by splitting on "and"/"then".
-  const openKnownRegex = new RegExp(`\\b(?:open|launch)\\s+(?:the\\s+|my\\s+)?(?:${knownAppNames})\\b`, 'i');
+  const openKnownRegex = new RegExp(`\\b(?:open|launch)\\s+(?:the\\s+|my\\s+)?(${knownAppNames})\\b`, 'i');
   if (openKnownRegex.test(lowerQuery)) {
-      // Extract which known app to open
-      const appMatch = lowerQuery.match(new RegExp(`\\b(?:open|launch)\\s+(?:the\\s+|my\\s+)?(${knownAppNames})\\b`, 'i'));
+      const appMatch = lowerQuery.match(openKnownRegex);
       if (appMatch) {
           const appKey = appMatch[1].toLowerCase();
           const resolved = APP_URL_MAP[appKey];
           const isUrl = resolved.startsWith('http');
-          const pyCode = isUrl
-              ? `import sys; sys.path.append('core'); import luna_tools\nluna_tools.open_url('${resolved}')`
-              : `import sys; sys.path.append('core'); import luna_tools\nluna_tools.open_app('${resolved}')`;
-
-          console.log(`[LUNA-DEBUG] FAST PATH: open "${appKey}" -> ${resolved}`);
-          if (typeof addBubble === 'function') addBubble('luna', `Opening ${appKey}!`);
-          if (window.electronAPI) {
-              const res = await window.electronAPI.executeCode('python', pyCode);
-              if (res && !res.ok) console.error('[LUNA-DEBUG] Fast path error:', res.error);
+          
+          // Inject Fast-Path Checkbox UI
+          const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+          const friendlyName = isUrl ? `Navigating to ${appKey}...` : `Opening ${appKey}...`;
+          if (typeof addBubbleReveal === 'function') {
+              addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">${friendlyName}</span></div>`);
           }
 
-          // COMPOUND REQUEST: Check if there's more after "and"/"then"/"also"
+          if (window.electronAPI) {
+              let res;
+              if (isUrl) {
+                  res = await window.electronAPI.runPython('web_automation.py', ['goto', resolved]);
+              } else {
+                  res = await window.electronAPI.runPython('app_launcher.py', [resolved]);
+              }
+              
+              const cb = document.getElementById(cbId);
+              if (cb) { cb.checked = true; cb.parentElement.querySelector('.label').style.color = 'var(--checkbox-color)'; }
+              
+              if (res && !res.ok) console.error('[LUNA-DEBUG] Fast path error:', res.error);
+          }
+          
           const compoundMatch = lowerQuery.match(/\b(?:and|then|also)\s+(.+)/i);
           if (compoundMatch) {
               const remaining = compoundMatch[1].trim();
-              console.log(`[LUNA-DEBUG] FAST PATH: Compound detected, routing remainder to AI: "${remaining}"`);
-              // Route the rest through the normal AI pipeline
-              return await callAI(remaining, failCount, depth);
+              await new Promise(r => setTimeout(r, 1500)); // Wait for app to become active window
+              return await callAI(remaining, failCount, depth, onChunk);
           }
-          return `Opening ${appKey}!`;
+          return `I've opened ${appKey} for you!`;
       }
   }
 
-  sysPrompt += tempContext + getSystemPrompt(lowerQuery);
-  if (cfg.systemPrompt.trim() !== '') {
-    sysPrompt += `\n\n[ADDITIONAL USER INSTRUCTIONS]:\n${cfg.systemPrompt}`;
-  }
-
-  // Route to local Ollama if we decided not to use Gemini for automation
-  if (!useGemini) {
-    try {
-      const ollamaReply = await callOllama(userText, sysPrompt);
-      state.history.push({ role: 'model', text: ollamaReply });
-      saveHistory();
-      const clean = await parseAICommands(ollamaReply, 0, 0);
-      return clean;
-    } catch(e) {
-      console.error('[LUNA-DEBUG] callOllama failed, falling back to cloud:', e);
+  if (requireCloudAction) {
+    console.log('[LUNA-ROUTER] Action regex matched -> Generating full system context for cloud engine.');
+    sysPrompt += tempContext + getSystemPrompt(lowerQuery);
+    if (cfg.systemPrompt.trim() !== '') {
+      sysPrompt += `\n\n[ADDITIONAL USER INSTRUCTIONS]:\n${cfg.systemPrompt}`;
     }
-  }
-
-  const engine = cfg.engine === 'auto' ? (cfg.openaiKey ? 'openai' : (cfg.geminiKey ? 'gemini' : 'groq')) : cfg.engine;
-
-
-  startBrainActivity();
-  console.log('[LUNA-DEBUG] Engine resolved to:', engine, 'optMode:', cfg.optMode);
-
-  try {
-    let activeEngine = engine;
-    
-    // Vision-to-Heavy Interceptor Pipeline
-    if (activeEngine === 'groq' && attachedImageBase64 && cfg.geminiKey) {
-        const visionPrompt = "SYSTEM DIRECTIVE: You are a pure optical character and scene recognition module. Your ONLY job is to describe EXACTLY what is in the attached image in supreme detail. List all text, UI elements, structure, and relevant context. Do NOT answer the user's prompt. Do NOT apologize. Do NOT say you are an AI. Just output the raw visual data.";
-        try {
-            // This call consumes the attachedImageBase64 and clears it
-            const visionDesc = await callCloudAPI("Extract all visual data from the attached image. Output ONLY the description.", visionPrompt, state.geminiIdx, 'gpt-4o-mini');
-            
-            // Append the perfectly extracted text to the user's prompt for Qwythos
-            userText += `\n\n[SYSTEM VISION MODULE CAPTURE]:\n${visionDesc}\n\n[CRITICAL INSTRUCTION FOR QWYTHOS]: The above is a raw text transcription of the user's screen/image provided by a vision module. IGNORE any text where the module claims it is an AI or cannot help. Treat the visual data as your own eyes, and answer my original request!`;
-        } catch(e) {
-            console.error("Vision extraction failed", e);
-        }
-    }
-
-    let reply = '';
-    console.log('[LUNA-DEBUG] Dispatching to activeEngine:', activeEngine);
-    if (activeEngine === 'openai' && cfg.openaiKey) { console.log('[LUNA-DEBUG] [OPENAI] Calling OpenAI API...'); reply = await callCloudAPI(userText, sysPrompt, state.geminiIdx, null, 'openai'); }
-    else if (activeEngine === 'gemini' && cfg.geminiKey) { console.log('[LUNA-DEBUG] [GEMINI] Calling Gemini API...'); reply = await callCloudAPI(userText, sysPrompt, state.geminiIdx, null, 'gemini'); }
-    else if (activeEngine === 'groq') {
-      // Sanitize messages to prevent Groq API crashes
-      let messages = [{ role: 'system', content: sysPrompt }];
-      getCleanedHistory().slice(-40, -1).forEach(m => {
-          messages.push({ role: m.role === 'user' ? 'user' : 'assistant', content: m.text });
-      });
-      messages.push({ role: 'user', content: userText });
-      
-      let sanitizedMessages = [];
-      for (let msg of messages) {
-          if (sanitizedMessages.length > 0 && sanitizedMessages[sanitizedMessages.length - 1].role === msg.role && msg.role !== 'system') {
-              sanitizedMessages[sanitizedMessages.length - 1].content += "\n\n" + msg.content;
-          } else {
-              sanitizedMessages.push(msg);
-          }
-      }
-      if (sanitizedMessages.length > 0 && sanitizedMessages[sanitizedMessages.length - 1].role === 'assistant') {
-          sanitizedMessages.push({ role: 'user', content: 'Continue.' });
-      }
-      messages = sanitizedMessages;
-
-      console.log('[LUNA-DEBUG] [GROQ] Calling Groq API...'); reply = await callCloudAPI(userText, sysPrompt, state.geminiIdx, null, 'groq'); 
-    }
-    else if (cfg.openaiKey) { console.log('[LUNA-DEBUG] [OPENAI] Fallback to OpenAI API...'); reply = await callCloudAPI(userText, sysPrompt, state.geminiIdx, null, 'openai'); }
-    else if (cfg.geminiKey) { console.log('[LUNA-DEBUG] [GEMINI] Fallback to Gemini API...'); reply = await callCloudAPI(userText, sysPrompt, state.geminiIdx, null, 'gemini'); }
-    else reply = '⚠️ APIs not configured.';
-    console.log('[LUNA-DEBUG] AI reply received. Length:', (reply||'').length, 'Preview:', (reply||'').substring(0, 200));
-    
-    stopBrainActivity();
-    state.history.push({ role: 'model', text: reply });
-    saveHistory();
-    const clean = await parseAICommands(reply, 0, 0);
-    return clean;
-  } catch (err) {
-    console.error('[LUNA-DEBUG] callAI caught error:', err);
-    if (engine === 'gemini' && cfg.groqKey) {
-      console.warn('Gemini failed, falling back to Groq...', err);
-      showToast(`⚠️ Gemini Limit Hit. Auto-routing to Backup Engine...`, false);
-      try { 
-        let reply = await callCloudAPI(userText, sysPrompt, state.geminiIdx); 
-        stopBrainActivity();
-        state.history.push({ role: 'model', text: reply });
-    saveHistory();
-    const clean = await parseAICommands(reply, 0, 0);
-    return clean;
-      } catch (e) { 
-        stopBrainActivity();
-        showToast(`❗ Both Engines Offline. Please wait for cooldown.`, true);
-        return `❗ Both engines failed. Please wait for cooldown or switch tiers.`; 
-      }
-    }
-    stopBrainActivity();
-    return `❗ Engine Error: ${err.message}`;
-  }
-}
-
-
-async function callCloudAPI(userText, sysPrompt, keyIndex = -1, modelOverride = null, provider = null) {
-  let poolString = '';
-  let primaryKey = '';
-  let activeModel = modelOverride;
-
-  if (provider === 'openai' || (!provider && cfg.openaiKey)) {
-    poolString = cfg.openaiKeys + '\n' + cfg.autoPool; primaryKey = cfg.openaiKey; activeModel = activeModel || cfg.openaiModel || 'gpt-4o-mini';
-  } else if (provider === 'groq' || (!provider && cfg.groqKey && !cfg.geminiKey)) {
-    poolString = cfg.groqKeys + '\n' + cfg.autoPool; primaryKey = cfg.groqKey; activeModel = activeModel || cfg.groqModel || 'llama3-8b-8192';
-  } else if (provider === 'gemini' || cfg.geminiKey) {
-    poolString = cfg.geminiKeys + '\n' + cfg.autoPool; primaryKey = cfg.geminiKey; activeModel = activeModel || cfg.geminiModel || 'gemini-1.5-flash';
   } else {
-    poolString = cfg.autoPool; primaryKey = '';
+    console.log('[LUNA-ROUTER] Conversational query -> Using LITE prompt to minimize latency for local engine.');
   }
 
-  let allBackupKeys = poolString.split(/[\n,; ]+/).map(k => k.trim()).filter(k => k);
-  if (primaryKey && !allBackupKeys.includes(primaryKey)) {
-    allBackupKeys.unshift(primaryKey); // Ensure primary key is always in the pool
-  }
-  
-  if (allBackupKeys.length === 0) {
-    throw new Error("No API keys found. Please enter a key in Settings.");
-  }
-
-  const actualModel = activeModel || 'gpt-4o-mini';
+  let priority = [];
+  const engine = cfg.engine === 'auto' ? (cfg.openaiKey ? 'openai' : (cfg.geminiKey ? 'gemini' : 'groq')) : cfg.engine;
+  if (!requireCloudAction) priority.push('ollama');
+  if (engine === 'openai') priority.push('openai', 'gemini', 'groq');
+  else if (engine === 'gemini') priority.push('gemini', 'groq', 'openai');
+  else if (engine === 'groq') priority.push('groq', 'gemini', 'openai');
+  else priority.push('gemini', 'openai', 'groq');
+  priority = [...new Set(priority)];
 
   let cleanHistory = [];
   getCleanedHistory().slice(-40, -1).forEach(m => {
@@ -910,73 +841,50 @@ async function callCloudAPI(userText, sysPrompt, keyIndex = -1, modelOverride = 
     }
   });
 
-  const messages = [
-    { role: 'system', content: sysPrompt },
-    ...cleanHistory,
-    { role: 'user', content: userText }
-  ];
-
-  let startIdx = keyIndex === -1 ? 0 : keyIndex % allBackupKeys.length;
-  let maxAttempts = allBackupKeys.length;
-  let lastError = null;
-
-  for (let attempt = 0; attempt < maxAttempts; attempt++) {
-    let currentIdx = (startIdx + attempt) % allBackupKeys.length;
-    let key = allBackupKeys[currentIdx];
-    
-    let url, body, headers;
-    let requestModel = actualModel;
-    
-    if (key.startsWith('sk-')) {
-      if (!requestModel.includes('gpt') && !requestModel.includes('o1')) requestModel = 'gpt-4o-mini';
-      url = 'https://api.openai.com/v1/chat/completions';
-      headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` };
-      body = { model: requestModel, messages: messages, temperature: 0.7 };
-    } else if (key.startsWith('gsk_')) {
-      if (!requestModel.includes('llama') && !requestModel.includes('mixtral') && !requestModel.includes('gemma')) requestModel = 'llama3-8b-8192';
-      url = 'https://api.groq.com/openai/v1/chat/completions';
-      headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` };
-      body = { model: requestModel, messages: messages, temperature: 0.7 };
-    } else {
-      if (!requestModel.includes('gemini')) requestModel = 'gemini-1.5-flash';
-      url = `https://generativelanguage.googleapis.com/v1beta/models/${requestModel}:generateContent?key=${key}`;
-      headers = { 'Content-Type': 'application/json' };
-      let contents = [];
-      if (sysPrompt) contents.push({ role: 'user', parts: [{ text: "SYSTEM_PROMPT: " + sysPrompt + "\n\nUnderstood." }]});
-      cleanHistory.forEach(m => contents.push({ role: m.role === 'assistant' ? 'model' : 'user', parts: [{ text: m.content }] }));
-      contents.push({ role: 'user', parts: [{ text: userText }] });
-      body = { contents, generationConfig: { temperature: 0.7 } };
+  const payload = {
+    messages: [...cleanHistory, { role: 'user', content: userText }],
+    systemPrompt: sysPrompt,
+    config: {
+      ...cfg,
+      priority
     }
+  };
 
-    let data;
-    try {
-      const res = await fetchWithTimeout(url, { method: 'POST', headers, body: JSON.stringify(body) });
-      data = await res.json();
-    } catch (err) {
-      console.error(`[LUNA-DEBUG] Network/Timeout error on key ${currentIdx}:`, err);
-      data = { error: { message: err.message || 'Network Timeout' } };
-    }
+  startBrainActivity();
+  return new Promise((resolve, reject) => {
+    let fullText = '';
     
-    if (!data.error) {
-      // Success! Update global state to this working index so future calls start here
-      state.geminiIdx = currentIdx;
-      localStorage.setItem('luna_geminiIdx', currentIdx);
-      
-      if (key.startsWith('sk-') || key.startsWith('gsk_')) {
-        return data.choices[0].message.content;
-      } else {
-        return data.candidates?.[0]?.content?.parts?.[0]?.text ?? '...';
+    window.electronAPI.onLLMToken((chunk) => {
+      fullText += chunk;
+      if (onChunk) onChunk(fullText, chunk);
+    });
+    
+    window.electronAPI.onLLMError((err) => {
+      stopBrainActivity();
+      resolve(`❗ Engine Error: ${err}`);
+    });
+    
+    window.electronAPI.onLLMEnd(async () => {
+      stopBrainActivity();
+      state.history.push({ role: 'model', text: fullText });
+      saveHistory();
+      try {
+        const clean = await parseAICommands(fullText, 0, 0);
+        resolve(clean);
+      } catch (e) {
+        resolve(fullText);
       }
-    }
+    });
     
-    // Failed. Log and move to next iteration
-    console.log(`[LUNA-DEBUG] Key ${currentIdx} failed. Error:`, data.error.message);
-    lastError = data.error.message;
-  }
-  
-  // Exited loop because all keys failed
-  throw new Error("All API keys in the pool failed or are invalid. Last error: " + (lastError || "Unknown error"));
+    window.electronAPI.startLLMStream(payload).catch((err) => {
+      stopBrainActivity();
+      resolve(`❗ Engine Error: ${err.message}`);
+    });
+  });
 }
+
+
+
 
 function updateTokens(count) {
   state.totalTokens += count;
@@ -1044,7 +952,7 @@ window.forceSyncCode = function(code) {
 
 function addBubble(sender, text) {
   if (sender === 'luna') {
-    text = text.replace(/Qwythos/gi, 'Luna AI');
+    text = text.replace(/Phi/gi, 'Luna AI');
     text = text.replace(/Empero AI/gi, 'Sai Prashant');
     text = text.replace(/Empero/gi, 'Sai Prashant');
   }
@@ -1077,7 +985,7 @@ function addBubble(sender, text) {
 
 function addBubbleReveal(sender, text) {
   if (sender === 'luna') {
-    text = text.replace(/Qwythos/gi, 'Luna AI');
+    text = text.replace(/Phi/gi, 'Luna AI');
     text = text.replace(/Empero AI/gi, 'Sai Prashant');
     text = text.replace(/Empero/gi, 'Sai Prashant');
   }
@@ -1103,12 +1011,38 @@ function addBubbleReveal(sender, text) {
   $('messages').scrollTop = $('messages').scrollHeight;
 }
 
-function addWelcomeIfEmpty() {
+async function addWelcomeIfEmpty() {
   if ($('messages').children.length === 0) {
     const h = new Date().getHours();
     const greet = h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
     $('chatGreeting').textContent = `${greet}!`;
-    addBubbleReveal('luna', `${greet}! I'm **Luna**, your AI companion.`);
+    
+    addBubbleReveal('luna', `${greet}! I\'m **Luna**, your AI companion.`);
+    
+    addBubble('luna', `<div class="typing-wave" id="luna-typing-init"><span></span><span></span><span></span><span style="font-size:0.7rem;margin-left:8px;color:var(--dim);">Warming up neural networks...</span></div>`);
+    
+    // Silently inject "hi" into the conversation history
+    state.history.push({ role: 'user', text: 'hi' });
+    saveHistory();
+    
+    try {
+        // Actually generate a response using the active model pipeline
+        const response = await callAI('hi', 0, 0);
+        
+        const typingNode = document.getElementById('luna-typing-init');
+        if (typingNode && typingNode.closest('.bubble-row')) {
+            typingNode.closest('.bubble-row').remove();
+        }
+        
+        // Output the real AI response as the welcome message
+        addBubbleReveal('luna', response);
+    } catch(e) {
+        const typingNode = document.getElementById('luna-typing-init');
+        if (typingNode && typingNode.closest('.bubble-row')) {
+            typingNode.closest('.bubble-row').remove();
+        }
+        addBubbleReveal('luna', `Systems fully loaded and ready! How can I help you today?`);
+    }
   }
 }
 
@@ -1180,8 +1114,8 @@ if ($('saveSettings')) $('saveSettings').addEventListener('click', () => {
   cfg.groqKey = $('groqKeyInput') ? $('groqKeyInput').value.trim() : ($('groqKey') ? $('groqKey').value.trim() : '');
   cfg.groqKeys = $('groqPoolInput') ? $('groqPoolInput').value.trim() : ($('groqKeys') ? $('groqKeys').value.trim() : '');
   cfg.groqModel = $('groqModelInput') ? $('groqModelInput').value : ($('groqModel') ? $('groqModel').value : '');
-  if($('routerModelInput')) cfg.routerModel = $('routerModelInput').value.trim() || 'qwythos-9b';
-  if($('heavyModelInput')) cfg.heavyModel = $('heavyModelInput').value.trim() || 'qwythos-9b';
+  if($('routerModelInput')) cfg.routerModel = $('routerModelInput').value.trim() || 'phi3:mini';
+  if($('heavyModelInput')) cfg.heavyModel = $('heavyModelInput').value.trim() || 'phi3:mini';
   cfg.engine = $('activeEngine').value; 
   cfg.systemPrompt = $('systemPrompt').value.trim();
   if($('voiceEngineSetting')) cfg.voiceEngine = $('voiceEngineSetting').value;
@@ -1418,69 +1352,7 @@ if ($('ideLangSelect')) $('ideLangSelect').addEventListener('change', () => {
 }
 
 
-async function callOllama(userText, sysPrompt = null) {
-  // Forcefully truncate sysPrompt for local models to prevent hallucinations (small models crash on the massive system prompt)
-  sysPrompt = "You are Luna, a helpful AI assistant. Answer accurately and concisely. Output your final response in plain text.";
 
-  let messages = [{ role: 'system', content: sysPrompt }];
-  let recentHistory = getCleanedHistory().slice(-state.maxContext);
-  
-  const activeModel = attachedImageBase64 ? 'minicpm-v:latest' : (cfg.optMode || 'qwythos-9b:latest');
-  
-  for (let msg of recentHistory) {
-    if (msg.role === 'user') {
-      let content = msg.text;
-      let messageObj = { role: 'user', content: content };
-      // ONLY attach images if the model is minicpm-v, otherwise small models will crash or output [object Object]
-      if (msg === recentHistory[recentHistory.length - 1] && attachedImageBase64 && activeModel.includes('minicpm-v')) {
-         messageObj.images = [attachedImageBase64]; 
-      }
-      messages.push(messageObj);
-        if (msg === recentHistory[recentHistory.length - 1] && typeof window.clearImageAttachment === "function") { setTimeout(window.clearImageAttachment, 100); }
-      } else {
-      let safeText = msg.text;
-      if (safeText.length > 0) messages.push({ role: 'assistant', content: safeText });
-    }
-  }
-
-  // Sanitize messages to prevent Groq API crashes
-  let sanitizedMessages = [];
-  for (let msg of messages) {
-      if (sanitizedMessages.length > 0 && sanitizedMessages[sanitizedMessages.length - 1].role === msg.role && msg.role !== 'system') {
-          sanitizedMessages[sanitizedMessages.length - 1].content += "\n\n" + msg.content;
-      } else {
-          sanitizedMessages.push(msg);
-      }
-  }
-  if (sanitizedMessages.length > 0 && sanitizedMessages[sanitizedMessages.length - 1].role === 'assistant') {
-      sanitizedMessages.push({ role: 'user', content: 'Continue.' });
-  }
-  messages = sanitizedMessages;
-
-  try {
-    const activeModel = attachedImageBase64 ? 'minicpm-v:latest' : (cfg.optMode || 'qwythos-9b:latest');
-    console.log('[LUNA-DEBUG] callOllama: model=' + activeModel);
-    const response = await fetchWithTimeout('http://127.0.0.1:11434/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      timeout: 180000,
-      body: JSON.stringify({
-        model: activeModel,
-        messages: messages,
-        stream: false,
-        options: { num_ctx: 4096 }
-      })
-    });
-
-    if (!response.ok) { let errMsg = 'Ollama connection failed. Is it running?'; try { const errJson = await response.json(); if (errJson.error) errMsg = errJson.error; } catch(e) {} throw new Error(errMsg); }
-    const data = await response.json();
-    console.log('[LUNA-DEBUG] callOllama reply length:', (data.message?.content || '').length);
-    return data.message.content;
-  } catch (error) {
-    console.error("Local Model Error:", error);
-    return `<div style="text-align:center;">⚠️ <b>Local AI Connection Failed</b><br><span style="font-size:0.9rem; color:var(--dim);">${error.message}</span><br><br><button onclick="document.getElementById('localDiagnosticsModal').classList.remove('hidden')" style="padding: 10px 15px; background: rgba(255,100,100,0.2); border: 1px solid #ff6464; color: #ff6464; border-radius: 8px; cursor: pointer; font-family:'Orbitron',sans-serif; letter-spacing:1px; font-weight:bold;">🛠️ RUN DIAGNOSTICS</button></div>`;
-  }
-}
 
 
 
@@ -2581,6 +2453,12 @@ setTimeout(() => {
 }, 500);
 // --- Mobile Menu Toggle ---
 document.addEventListener('DOMContentLoaded', () => {
+  // Add a fake greeting so the UI isn't blank on startup
+  setTimeout(() => {
+    if (typeof addBubble === 'function') {
+      addBubble('luna', 'System initialized. All models are online and ready.');
+    }
+  }, 1000);
 
   // --- Alias Storage Logic ---
   const aliasApp = document.getElementById('aliasApp');
@@ -2771,13 +2649,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 if(document.getElementById('routerModelInput')) {
   document.getElementById('routerModelInput').addEventListener('change', (e) => {
-    cfg.routerModel = e.target.value.trim() || 'qwythos-9b';
+    cfg.routerModel = e.target.value.trim() || 'phi3:mini';
     localStorage.setItem('luna_routerModel', cfg.routerModel);
   });
 }
 if(document.getElementById('heavyModelInput')) {
   document.getElementById('heavyModelInput').addEventListener('change', (e) => {
-    cfg.heavyModel = e.target.value.trim() || 'qwythos-9b';
+    cfg.heavyModel = e.target.value.trim() || 'phi3:mini';
     localStorage.setItem('luna_heavyModel', cfg.heavyModel);
   });
 }
@@ -2823,29 +2701,40 @@ async function sendMessage() {
   }
 
   const _procStart = Date.now();
-  addBubble('luna', window.LunaLoaders.getLoaderHtml(true));
+  
+  const bubbleId = 'stream-' + Date.now();
+  const typingHtml = window.LunaLoaders.getLoaderHtml(true);
+  addBubble('luna', `<div id="${bubbleId}">${typingHtml}</div>`);
+  
   const _timerInterval = setInterval(() => {
     const el = document.getElementById('luna-typing-timer');
     if (el) el.textContent = '[' + ((Date.now() - _procStart) / 1000).toFixed(1) + 's]';
     else clearInterval(_timerInterval);
   }, 100);
   try {
-    let reply = await callAI(text);
+    let reply = await callAI(text, 0, 0, (fullText, chunk) => {
+       const el = document.getElementById(bubbleId);
+       if (el) {
+           el.innerHTML = formatText(fullText);
+           const msgs = $('messages');
+           if (msgs) msgs.scrollTop = msgs.scrollHeight;
+       }
+    });
     clearInterval(_timerInterval);
+    
     if (!reply || reply.trim() === '') reply = 'Task completed.';
-    const typingNode = document.getElementById('luna-typing');
-    if (typingNode && typingNode.closest('.bubble-row')) {
-        typingNode.closest('.bubble-row').remove();
+    
+    const el = document.getElementById(bubbleId);
+    if (el) {
+        el.innerHTML = formatText(reply);
     }
-    addBubble('luna', reply);
   } catch(err) {
     clearInterval(_timerInterval);
     console.error('[LUNA] sendMessage error:', err);
-    const typingNode = document.getElementById('luna-typing');
-    if (typingNode && typingNode.closest('.bubble-row')) {
-        typingNode.closest('.bubble-row').remove();
+    const el = document.getElementById(bubbleId);
+    if (el) {
+        el.innerHTML = `❗ Error: ${err.message || 'Connection failed. Check your API keys in Settings.'}`;
     }
-    addBubble('luna', `❗ Error: ${err.message || 'Connection failed. Check your API keys in Settings.'}`);
   }
 }
 
@@ -3033,20 +2922,20 @@ const AI_COMMAND_REGISTRY = {
     'WEB_GO': async (match, feedback) => {
         if (window.electronAPI) {
             const url = match[1].trim().replace(/^["']|["']$/g, '');
-            const pyCode = `import sys; sys.path.append('core'); import luna_browser\nprint(luna_browser.go_to("${url}"))`;
-            const res = await window.electronAPI.executeCode('python', pyCode);
-            feedback.push(`[SYSTEM]: Navigated to ${url}. Result: ${res.output}`);
+            const res = await window.electronAPI.runPython('web_automation.py', ['goto', url]);
+            let output = res.ok ? 'Success' : (res.error || 'Unknown error');
+            if (res.message) output += ' ' + res.message;
+            feedback.push(`[SYSTEM]: Navigated to ${url}. Result: ${output}`);
         }
     },
     'OPEN_APP': async (match, feedback) => {
         if (window.electronAPI) {
             let appName = match[1].trim().replace(/ app$/i, '').replace(/"/g, '\"');
-            const pyCode = `import sys; sys.path.append('core'); import luna_tools\nluna_tools.open_app("${appName}")`;
-            const res = await window.electronAPI.executeCode('python', pyCode);
-            if (res.ok && res.output.includes('Successfully')) {
+            const res = await window.electronAPI.runPython('app_launcher.py', [appName]);
+            if (res.ok) {
                 feedback.push(`[SYSTEM]: Successfully found and launched ${appName}.`);
             } else {
-                feedback.push(`[SYSTEM]: Failed to launch ${appName}.`);
+                feedback.push(`[SYSTEM]: Failed to launch ${appName}. Error: ${res.error || 'Unknown'}`);
             }
         }
     },
@@ -3065,17 +2954,17 @@ const AI_COMMAND_REGISTRY = {
     'WEB_CLICK': async (match, feedback) => {
         if (window.electronAPI) {
             const sel = match[1].trim();
-            const pyCode = `import sys; sys.path.append('core'); import luna_browser\nprint(luna_browser.smart_click("${sel}"))`;
-            const res = await window.electronAPI.executeCode('python', pyCode);
-            feedback.push(`[SYSTEM]: WEB_CLICK Result: ${res.output}`);
+            const res = await window.electronAPI.runPython('web_automation.py', ['click', sel]);
+            let output = res.ok ? (res.message || 'Success') : (res.error || 'Unknown error');
+            feedback.push(`[SYSTEM]: WEB_CLICK Result: ${output}`);
         }
     },
     'WEB_PRESS': async (match, feedback) => {
         if (window.electronAPI) {
             const key = match[1].trim();
-            const pyCode = `import sys; sys.path.append('core'); import luna_browser\nprint(luna_browser.press("${key}"))`;
-            const res = await window.electronAPI.executeCode('python', pyCode);
-            feedback.push(`[SYSTEM]: WEB_PRESS Result: ${res.output}`);
+            const res = await window.electronAPI.runPython('web_automation.py', ['press', key]);
+            let output = res.ok ? (res.message || 'Success') : (res.error || 'Unknown error');
+            feedback.push(`[SYSTEM]: WEB_PRESS Result: ${output}`);
         }
     },
     'SEND_MESSAGE': async (match, feedback) => {
@@ -3086,18 +2975,10 @@ const AI_COMMAND_REGISTRY = {
                 return;
             }
             
-            // Hardcoded fast execution plan (Zero Latency)
-            if (typeof window.createChecklist === 'function') {
-                window.createChecklist(["Opening Browser", `Searching inbox for ${args[1]}`, "Typing and Sending"]);
-                // Simulate ticks for zero latency UI
-                setTimeout(() => window.tickChecklist("Opening Browser"), 2000);
-                setTimeout(() => window.tickChecklist("Searching inbox"), 6000);
-                setTimeout(() => window.tickChecklist("Typing and Sending"), 10000);
-            }
-            
-            const pyCode = `import sys
-import luna_message
-print(luna_message.send_message({'platform': '${args[0].trim()}', 'receiver': '${args[1].trim()}', 'message_text': '''${args.slice(2).join('|').trim()}'''}), flush=True)`;
+            const pathInjection = cfg.messagingMode === 'invisible' 
+                ? "" 
+                : "sys.path.insert(0, os.path.abspath('tools'))";
+            const pyCode = `import sys, os\n${pathInjection}\nimport luna_message\nprint(luna_message.send_message({'platform': '${args[0].trim()}', 'receiver': '${args[1].trim()}', 'message_text': '''${args.slice(2).join('|').trim()}'''}), flush=True)`;
             const res = await window.electronAPI.executeCode('python', pyCode);
             // Tell the LLM it's complete regardless of errors to prevent infinite loops
             feedback.push(`[SYSTEM_MSG]: Automation sequence completed for ${args[1]}. Output: ${res.output}`);
@@ -3283,6 +3164,28 @@ const AI_NO_ARG_REGISTRY = {
     }
 };
 
+function getToolFriendlyName(tag, query) {
+    const q = query ? query.trim() : '';
+    switch(tag) {
+        case 'OPEN_APP': return `Opening ${q}...`;
+        case 'WEB_GO': return `Navigating to ${q}...`;
+        case 'SILENT_SEARCH': return `Searching web for "${q}"...`;
+        case 'WEB_SEARCH': return `Opening search for "${q}"...`;
+        case 'READ_FILE': return `Reading file: ${q}...`;
+        case 'LIST_DIR': return `Listing directory contents...`;
+        case 'RUN_CMD':
+        case 'CMD': return `Executing command...`;
+        case 'SEND_MESSAGE': return `Sending message...`;
+        case 'SEARCH_FILES': return `Searching files...`;
+        case 'CAPTURE_SCREEN': return `Analyzing screen...`;
+        case 'BROWSER_ANALYZE': return `Analyzing webpage...`;
+        case 'EXECUTE_PYTHON': return `Running internal script...`;
+        default:
+            const formatted = tag.replace(/_/g, ' ').toLowerCase();
+            return `Executing ${formatted}...`;
+    }
+}
+
 async function parseAICommands(text, depth = 0, failCount = 0) {
     if (window.isAborted) return "[SYSTEM]: Task aborted by user.";
     if (depth > 5) {
@@ -3345,8 +3248,10 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
             const tag = match[1].toUpperCase();
             const shiftedMatch = [match[0], match[2]];
             
-            if (tag === 'SEND_MESSAGE') {
-                
+            const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+            const friendlyName = getToolFriendlyName(tag, shiftedMatch[1]);
+            if (typeof addBubbleReveal === 'function') {
+                addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">${friendlyName}</span></div>`);
             }
             
             if (AI_COMMAND_REGISTRY[tag]) {
@@ -3354,6 +3259,9 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
             } else if (tag === 'RUN_CMD') {
                 if (AI_COMMAND_REGISTRY['CMD']) await AI_COMMAND_REGISTRY['CMD'](shiftedMatch, feedback);
             }
+            
+            const cb = document.getElementById(cbId);
+            if (cb) { cb.checked = true; cb.parentElement.querySelector('.label').style.color = 'var(--checkbox-color)'; }
         }
 
         // Regex for tags with 2 parameters (separated by |)
@@ -3361,18 +3269,38 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
         while ((match = tag2Regex.exec(text)) !== null) {
             const tag = match[1].toUpperCase();
             const shiftedMatch = [match[0], match[2], match[3]];
+            
+            const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+            const friendlyName = getToolFriendlyName(tag, shiftedMatch[1]);
+            if (typeof addBubbleReveal === 'function') {
+                addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">${friendlyName}</span></div>`);
+            }
+            
             if (AI_COMMAND_REGISTRY[tag]) {
                 await AI_COMMAND_REGISTRY[tag](shiftedMatch, feedback);
             }
+            
+            const cb = document.getElementById(cbId);
+            if (cb) { cb.checked = true; cb.parentElement.querySelector('.label').style.color = 'var(--checkbox-color)'; }
         }
         
         // Regex for no parameter tags
         const noArgRegex = /\[(WEB_READ|BROWSER_ANALYZE|CAPTURE_BROWSER|CAPTURE_SCREEN|STOP_CODE|CLIPBOARD_READ|SCREEN_INFO)\]/gi;
         while ((match = noArgRegex.exec(text)) !== null) {
             const tag = match[1].toUpperCase();
+            
+            const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+            const friendlyName = getToolFriendlyName(tag, '');
+            if (typeof addBubbleReveal === 'function') {
+                addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">${friendlyName}</span></div>`);
+            }
+            
             if (AI_NO_ARG_REGISTRY[tag]) {
                 await AI_NO_ARG_REGISTRY[tag](feedback);
             }
+            
+            const cb = document.getElementById(cbId);
+            if (cb) { cb.checked = true; cb.parentElement.querySelector('.label').style.color = 'var(--checkbox-color)'; }
         }
 
         // Special UI Controls
@@ -3407,8 +3335,19 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
             if (isIllegalMsg) {
                 feedback.push(`[SYSTEM_ERROR]: RULE VIOLATION. Do NOT use Python scripts or hallucinated functions like 'browser_navigate' for messaging! You MUST strictly use the JSON schema: {"tool": "SEND_MESSAGE", "query": "platform|username|message"}`);
             } else {
-                if (typeof addCodeBlock === 'function') addCodeBlock('python', pyCode);
+                // [OPTIMIZATION] Don't visually output the python code bubble for internal tool executions
+                // if (typeof addCodeBlock === 'function') addCodeBlock('python', pyCode);
+                
+                const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+                if (typeof addBubbleReveal === 'function') {
+                    addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">Executing internal script...</span></div>`);
+                }
+                
                 const res = await window.electronAPI.executeCode('python', pyCode);
+                
+                const cb = document.getElementById(cbId);
+                if (cb) { cb.checked = true; cb.parentElement.querySelector('.label').style.color = 'var(--checkbox-color)'; }
+                
                 if (res.ok) {
                     feedback.push(`[PYTHON_OUTPUT]:\n${res.output}`);
                 } else {
@@ -3828,3 +3767,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     }, 2000); // Wait for DOM parsing
 });
+
+
+window.pingLocalModelSilently = async function() {
+    if (state.screen === 'sleep' || window.getComputedStyle(document.getElementById('sleepScreen')).display !== 'none') {
+        startBrainActivity();
+        let targetModel = cfg.optMode || 'phi3:mini';
+        try {
+            await fetch('http://127.0.0.1:11434/api/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ model: targetModel, prompt: 'hi', stream: false })
+            });
+        } catch(e) {}
+        stopBrainActivity();
+        if (typeof speakGreeting === 'function') speakGreeting();
+    }
+};
+document.addEventListener('DOMContentLoaded', () => { setTimeout(window.pingLocalModelSilently, 3000); });
+
+
+window.fetchNews = async function() {
+    try {
+        let kw = localStorage.getItem('luna_news_keyword') || 'Technology';
+        let disp = document.getElementById('newsKeywordDisplay');
+        if(disp) disp.innerText = '(' + kw + ')';
+        let feed = document.getElementById('newsFeedContent');
+        if(!feed) return;
+        feed.innerHTML = '<div style="color: var(--gray); font-style: italic;">Loading neural feed...</div>';
+        if (window.electronAPI && window.electronAPI.runPython) {
+            let res = await window.electronAPI.runPython('fetch_news.py', [kw]);
+            if (res && res.ok && res.data) {
+                let html = '';
+                res.data.forEach(d => {
+                    html += '<div style="margin-bottom: 5px;"><a href="' + d.link + '" target="_blank" style="color: var(--fg); text-decoration: none; font-weight: 500;">' + d.title + '</a><br><span style="font-size: 0.7rem; color: var(--gray);">Source: ' + d.source + '</span></div>';
+                });
+                feed.innerHTML = html;
+            } else {
+                feed.innerHTML = '<div style="color: var(--red);">News offline or parsing failed.</div>';
+            }
+        } else {
+            feed.innerHTML = '<div style="color: var(--red);">Connection error.</div>';
+        }
+    } catch(e) {
+        let feed = document.getElementById('newsFeedContent');
+        if(feed) feed.innerHTML = '<div style="color: var(--red);">Error: ' + e.message + '</div>';
+    }
+};
+document.addEventListener('DOMContentLoaded', () => setTimeout(window.fetchNews, 2000));

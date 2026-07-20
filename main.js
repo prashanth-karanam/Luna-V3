@@ -15,6 +15,7 @@ app.commandLine.appendSwitch('log-level', '3'); // Suppress chunked_data_pipe ne
 app.disableHardwareAcceleration();
 
 const { initVisionManager } = require('./src/main/VisionManager');
+const { generateStream } = require('./src/main/LLMRouter');
 
 const { initSystemController } = require('./src/main/SystemController');
 const { initPythonTools } = require('./src/main/PythonTools');
@@ -40,6 +41,18 @@ ipcMain.handle('luna-notify', (event, title, body) => {
     return { error: 'Notifications not supported on this system' };
   } catch (e) {
     return { error: e.message };
+  }
+});
+
+ipcMain.handle('llm-generate-stream', async (event, payload) => {
+  try {
+    await generateStream(payload, {
+      onToken: (chunk) => event.sender.send('llm-token', chunk),
+      onError: (err) => event.sender.send('llm-error', err.message),
+      onEnd: () => event.sender.send('llm-end')
+    });
+  } catch (err) {
+    event.sender.send('llm-error', err.message);
   }
 });
 
@@ -81,8 +94,15 @@ function createWindow() {
   });
 
   // Capture renderer console messages for debugging
-  win.webContents.on('console-message', (event, level, message, line, sourceId) => {
-    console.log(`[Renderer console] ${message}`);
+  win.webContents.on('console-message', (event, ...args) => {
+    // args[0] might be 'level' (integer) or a 'messageDetails' object in newer Electron
+    let msg = "Unknown message";
+    if (typeof args[0] === 'object' && args[0] !== null && args[0].message) {
+      msg = args[0].message;
+    } else if (typeof args[1] === 'string') {
+      msg = args[1]; // Old signature: level, message, line, sourceId
+    }
+    console.log(`[Renderer console] ${msg}`);
   });
 
   return win;
@@ -136,6 +156,8 @@ app.whenReady().then(() => {
   startTerminalLogger(win);
   
   // Start dummy audio listener and Whisper server
+  // [OPTIMIZATION]: Disabled automatic booting of Whisper server on startup to save memory/boot time
+  /*
   try {
     const { silentSpawn } = require('./utils/silentExec');
     const listener = silentSpawn('node', [path.join(__dirname, 'audio_listener', 'listener.js')]);
@@ -159,6 +181,7 @@ app.whenReady().then(() => {
   } catch(e) {
     console.warn("Could not start background processes:", e);
   }
+  */
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
