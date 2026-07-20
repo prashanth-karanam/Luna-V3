@@ -2990,7 +2990,7 @@ const AI_COMMAND_REGISTRY = {
                     setTimeout(() => {
                         const cbId = 'cb_step_' + Date.now() + '_' + i;
                         addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" checked disabled /><div class="checkmark" style="opacity:1; transform:scale(1);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">${step}</span></div>`);
-                    }, (i + 1) * 2000); // 2 second delay between visual steps
+                    }, (i + 1) * 2500); // 2 second delay between visual steps
                 });
             }
             

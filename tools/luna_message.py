@@ -26,7 +26,7 @@ def send_message(data):
             # Use IG.ME links to open direct message directly!
             url = f"https://ig.me/m/{receiver}"
             os.system(f'start "" "{url}"')
-            time.sleep(5) # wait for browser and insta to load
+            time.sleep(9) # Wait longer for IG.ME redirect and React SPA to fully mount
             pyautogui.write(message, interval=0.01)
             time.sleep(0.5)
             pyautogui.press('enter')
