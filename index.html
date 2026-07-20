@@ -693,6 +693,25 @@ window.toggleAuth = function(e) {
 
   <script src="./src/modals.js"></script>
 
+    <!-- CYBER CONVERSATIONS MODAL -->
+  <div id="cyberConversationsModal" class="cyber-modal hidden">
+    <div class="cyber-modal-overlay"></div>
+    <div class="cyber-modal-content" style="max-width: 600px;">
+      <div class="cyber-modal-header">
+        <h2>CONVERSATIONS & LOGS</h2>
+        <button class="cyber-close-btn modal-closer">&times;</button>
+      </div>
+      <div class="cyber-modal-body">
+        <div class="input-group">
+          <input type="text" id="convSearch" class="cyber-input" style="width:100%; box-sizing: border-box;" placeholder="Search logs..." />
+        </div>
+        <div id="convList" style="margin-top: 15px; max-height: 50vh; overflow-y: auto; display: flex; flex-direction: column; gap: 10px;">
+          <div style="color: var(--dim); font-style: italic;">No past conversations found.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- CYBER SETTINGS MODAL (TABBED) -->
   <!-- PROFILE MODAL -->
   <div id="cyberProfileModal" class="cyber-modal hidden">
@@ -917,6 +936,8 @@ window.toggleAuth = function(e) {
 
       <div class="cyber-modal-body" style="max-height: 65vh; overflow-y: auto; padding-right: 10px;">
         
+        <!-- SEARCH BOX -->
+        <input type="text" id="helpSearch" class="cyber-input" style="width:100%; box-sizing: border-box; margin-bottom: 20px;" placeholder="Search knowledge base..." />
         <!-- HERO MANIFESTO -->
         <div class="manifesto-block">
           <h3 class="manifesto-title">THE ARCHITECTURE OF AUTONOMY</h3>
@@ -1058,3 +1079,8 @@ window.toggleAuth = function(e) {
   </script>
 </body>
 </html>
+
+
+
+
+

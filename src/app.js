@@ -767,7 +767,8 @@ If the user asks you to search, open apps, or do anything on their computer, you
   
   let requireCloudAction = false;
   const hasCloudKey = cfg.geminiKey || cfg.openaiKey || cfg.groqKey;
-  if ((actionRegex.test(lowerQuery) || depth > 0) && hasCloudKey && !openAppRegex.test(lowerQuery)) {
+  const isCompound = /\band\s+(search|find|open|tell|read|check|show|write|send)\b/i.test(lowerQuery) || (lowerQuery.split(' ').length > 8 && lowerQuery.includes('and'));
+    if ((actionRegex.test(lowerQuery) || depth > 0) && hasCloudKey && (!openAppRegex.test(lowerQuery) || isCompound)) {
       requireCloudAction = true;
   }
 
@@ -3834,3 +3835,136 @@ window.fetchNews = async function() {
     }
 };
 document.addEventListener('DOMContentLoaded', () => setTimeout(window.fetchNews, 2000));
+
+
+
+
+window.saveProfileData = function() {
+    const newsInt = document.getElementById('profileNewsInterest');
+    if(newsInt) {
+        localStorage.setItem('luna_news_keyword', newsInt.value.trim());
+        if(window.fetchNews) window.fetchNews();
+    }
+    const modal = document.getElementById('cyberProfileModal');
+    if (modal) modal.classList.add('hidden');
+};
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const newsInt = document.getElementById('profileNewsInterest');
+    if(newsInt) newsInt.value = localStorage.getItem('luna_news_keyword') || 'Technology';
+});
+
+
+
+window.loadSession = function(id) {
+    let sess = allSessions.find(s => s.id === id);
+    if(sess) {
+        currentSessionId = sess.id;
+        messages = sess.messages || [];
+        document.getElementById('chatFeed').innerHTML = '';
+        messages.forEach(m => {
+            if(m.role === 'user') addMessage('user', m.content);
+            else addMessage('luna', m.content);
+        });
+        const modal = document.getElementById('cyberConversationsModal');
+        if(modal) modal.classList.add('hidden');
+    }
+};
+
+window.loadConversations = function() {
+    const list = document.getElementById('convList');
+    if (!list) return;
+    
+    let sessions = [];
+    try {
+        sessions = JSON.parse(localStorage.getItem('luna_sessions')) || [];
+    } catch(e) {}
+    
+    if (sessions.length === 0) {
+        list.innerHTML = '<div style="color: var(--dim); font-style: italic;">No past conversations found.</div>';
+        return;
+    }
+    
+    sessions.sort((a,b) => b.id - a.id);
+    
+    let html = '';
+    sessions.forEach(s => {
+        let dateStr = new Date(s.id).toLocaleString();
+        let msgs = s.messages || [];
+        let preview = msgs.length > 0 ? (msgs[0].content || '').substring(0, 50) + '...' : 'Empty session';
+        html += '<div class="cyber-session-item" data-text="' + (dateStr + ' ' + preview).toLowerCase() + '" style="padding: 10px; border: 1px solid rgba(0,255,100,0.2); border-radius: 5px; cursor: pointer; transition: 0.2s;" onclick="loadSession(' + s.id + ')">';
+        html += '<div style="font-size: 0.8rem; color: var(--dim); margin-bottom: 5px;">' + dateStr + '</div>';
+        html += '<div style="color: var(--text); font-size: 0.9rem;">' + preview + '</div>';
+        html += '</div>';
+    });
+    list.innerHTML = html;
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const msgRadio = document.getElementById('m-messages');
+    if (msgRadio) msgRadio.addEventListener('click', window.loadConversations);
+    
+    const search = document.getElementById('convSearch');
+    if (search) {
+        search.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('.cyber-session-item').forEach(el => {
+                if (el.getAttribute('data-text').includes(query)) el.style.display = 'block';
+                else el.style.display = 'none';
+            });
+        });
+    }
+});
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    const helpSearch = document.getElementById('helpSearch');
+    if (helpSearch) {
+        helpSearch.addEventListener('input', (e) => {
+            const query = e.target.value.toLowerCase();
+            document.querySelectorAll('#cyberHelpModal .faq-item').forEach(el => {
+                if (el.textContent.toLowerCase().includes(query)) el.style.display = 'block';
+                else el.style.display = 'none';
+            });
+        });
+    }
+});
+
+
+window.updateDashLayout = function() {
+    const tNews = document.getElementById('toggleNews');
+    const tOrb = document.getElementById('toggleOrb');
+    const tTerm = document.getElementById('toggleTerminal');
+    
+    if(!tNews || !tOrb || !tTerm) return;
+    
+    const showNews = tNews.checked;
+    const showOrb = tOrb.checked;
+    const showTerm = tTerm.checked;
+    
+    localStorage.setItem('dash_showNews', showNews);
+    localStorage.setItem('dash_showOrb', showOrb);
+    localStorage.setItem('dash_showTerm', showTerm);
+    
+    const newsCard = document.getElementById('dailyNewsCard');
+    const orbCont = document.getElementById('luna-orb');
+    const termCont = document.querySelector('.terminal-card');
+    
+    if(newsCard) newsCard.style.display = showNews ? 'flex' : 'none';
+    if(orbCont) orbCont.style.display = showOrb ? 'flex' : 'none';
+    if(termCont) termCont.style.display = showTerm ? 'flex' : 'none';
+};
+
+document.addEventListener('DOMContentLoaded', () => {
+    const tNews = document.getElementById('toggleNews');
+    const tOrb = document.getElementById('toggleOrb');
+    const tTerm = document.getElementById('toggleTerminal');
+    
+    if(tNews) {
+        tNews.checked = localStorage.getItem('dash_showNews') !== 'false';
+        tOrb.checked = localStorage.getItem('dash_showOrb') !== 'false';
+        tTerm.checked = localStorage.getItem('dash_showTerm') !== 'false';
+        updateDashLayout();
+    }
+});
