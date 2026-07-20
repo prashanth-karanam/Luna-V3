@@ -746,7 +746,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
   } catch(e) { console.log('[LUNA-DEBUG] web_automation error:', e); }
   
   const APP_URL_MAP = {
-      'insta': 'https://www.instagram.com/', 'instagram': 'https://www.instagram.com/',
+      'insta': 'https://www.instagram.com/', 'instagram': 'https://www.instagram.com/', 'reels on insta': 'https://www.instagram.com/reels/', 'insta reels': 'https://www.instagram.com/reels/', 'instagram reels': 'https://www.instagram.com/reels/', 'reels': 'https://www.instagram.com/reels/',
       'whatsapp': 'WhatsApp', 'wa': 'WhatsApp', 'telegram': 'Telegram', 'tg': 'Telegram',
       'discord': 'Discord', 'chrome': 'Google Chrome', 'google chrome': 'Google Chrome', 
       'opera': 'Opera', 'edge': 'Microsoft Edge', 'microsoft edge': 'Microsoft Edge', 'ms edge': 'Microsoft Edge',
