@@ -782,7 +782,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
           // Inject Fast-Path Checkbox UI
           const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
           const friendlyName = isUrl ? `Navigating to ${appKey}...` : `Opening ${appKey}...`;
-          if (typeof addBubbleReveal === 'function') {
+          if (friendlyName && typeof addBubbleReveal === 'function') {
               addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">${friendlyName}</span></div>`);
           }
 
@@ -2975,6 +2975,25 @@ const AI_COMMAND_REGISTRY = {
                 return;
             }
             
+            // Multi-step UI visualization
+            if (typeof addBubbleReveal === 'function') {
+                const receiver = args[1].trim();
+                const textMsg = args.slice(2).join('|').trim();
+                const displayMsg = textMsg.length > 15 ? textMsg.substring(0, 15) + '...' : textMsg;
+                const steps = [
+                    "Opening Browser...",
+                    `Opening DM of ${receiver}...`,
+                    `Typing "${displayMsg}"...`,
+                    "Successfully sent!"
+                ];
+                steps.forEach((step, i) => {
+                    setTimeout(() => {
+                        const cbId = 'cb_step_' + Date.now() + '_' + i;
+                        addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" checked disabled /><div class="checkmark" style="opacity:1; transform:scale(1);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">${step}</span></div>`);
+                    }, (i + 1) * 2000); // 2 second delay between visual steps
+                });
+            }
+            
             const pathInjection = cfg.messagingMode === 'invisible' 
                 ? "" 
                 : "sys.path.insert(0, os.path.abspath('tools'))";
@@ -3175,7 +3194,7 @@ function getToolFriendlyName(tag, query) {
         case 'LIST_DIR': return `Listing directory contents...`;
         case 'RUN_CMD':
         case 'CMD': return `Executing command...`;
-        case 'SEND_MESSAGE': return `Sending message...`;
+        case 'SEND_MESSAGE': return false;
         case 'SEARCH_FILES': return `Searching files...`;
         case 'CAPTURE_SCREEN': return `Analyzing screen...`;
         case 'BROWSER_ANALYZE': return `Analyzing webpage...`;
@@ -3250,7 +3269,7 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
             
             const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
             const friendlyName = getToolFriendlyName(tag, shiftedMatch[1]);
-            if (typeof addBubbleReveal === 'function') {
+            if (friendlyName && typeof addBubbleReveal === 'function') {
                 addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">${friendlyName}</span></div>`);
             }
             
@@ -3272,7 +3291,7 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
             
             const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
             const friendlyName = getToolFriendlyName(tag, shiftedMatch[1]);
-            if (typeof addBubbleReveal === 'function') {
+            if (friendlyName && typeof addBubbleReveal === 'function') {
                 addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">${friendlyName}</span></div>`);
             }
             
@@ -3291,7 +3310,7 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
             
             const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
             const friendlyName = getToolFriendlyName(tag, '');
-            if (typeof addBubbleReveal === 'function') {
+            if (friendlyName && typeof addBubbleReveal === 'function') {
                 addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">${friendlyName}</span></div>`);
             }
             
@@ -3339,7 +3358,7 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
                 // if (typeof addCodeBlock === 'function') addCodeBlock('python', pyCode);
                 
                 const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
-                if (typeof addBubbleReveal === 'function') {
+                if (friendlyName && typeof addBubbleReveal === 'function') {
                     addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">Executing internal script...</span></div>`);
                 }
                 
