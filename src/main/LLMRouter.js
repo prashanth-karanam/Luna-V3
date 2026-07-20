@@ -77,7 +77,10 @@ async function tryOllama(messages, systemPrompt, config, callbacks) {
   const body = {
     model: config.optMode || config.routerModel || 'phi3:mini',
     messages: ollamaMessages,
-    stream: true
+    stream: true,
+    options: {
+      stop: ["---", "### Instruction", "User:", "<|end|>"]
+    }
   };
 
   const controller = new AbortController();
