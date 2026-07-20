@@ -3977,3 +3977,361 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
 
+
+
+
+// ═══════════════════════════════════════════════════════════════
+// LUNA MODE SWITCHER (Chat / Voice / Console)
+// ═══════════════════════════════════════════════════════════════
+window.switchMode = function(mode) {
+    localStorage.setItem('luna_mode', mode);
+
+    const chatPane = document.getElementById('chatPane');
+    const voicePanel = document.getElementById('voicePanel');
+    const consolePanel = document.getElementById('consolePanel');
+
+    // Hide all panels
+    if (chatPane) chatPane.style.display = 'none';
+    if (voicePanel) voicePanel.classList.add('hidden');
+    if (consolePanel) consolePanel.classList.add('hidden');
+
+    // Update toggle buttons
+    ['modeChat','modeVoice','modeConsole'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) btn.classList.remove('active');
+    });
+
+    if (mode === 'chat') {
+        if (chatPane) chatPane.style.display = 'flex';
+        const b = document.getElementById('modeChat'); if(b) b.classList.add('active');
+    } else if (mode === 'voice') {
+        if (voicePanel) voicePanel.classList.remove('hidden');
+        const b = document.getElementById('modeVoice'); if(b) b.classList.add('active');
+    } else if (mode === 'console') {
+        if (consolePanel) consolePanel.classList.remove('hidden');
+        const b = document.getElementById('modeConsole'); if(b) b.classList.add('active');
+        // Initialize preview on first open
+        updatePreview();
+        renderGrindProblems();
+    }
+};
+
+// Restore mode on load
+document.addEventListener('DOMContentLoaded', () => {
+    const savedMode = localStorage.getItem('luna_mode') || 'chat';
+    setTimeout(() => switchMode(savedMode), 500);
+});
+
+// ═══════════════════════════════════════════════════════════════
+// CONSOLE SUB-MODE SWITCHER (UI/UX Dev vs Language Grind)
+// ═══════════════════════════════════════════════════════════════
+window.switchConsoleMode = function(mode) {
+    const uiuxPane = document.getElementById('consUiuxPane');
+    const grindPane = document.getElementById('consGrindPane');
+    const btnUiux = document.getElementById('consSubUiux');
+    const btnGrind = document.getElementById('consSubGrind');
+
+    if (mode === 'uiux') {
+        if (uiuxPane) uiuxPane.style.display = 'flex';
+        if (grindPane) grindPane.style.display = 'none';
+        if (btnUiux) { btnUiux.style.background='rgba(0,180,255,0.15)'; btnUiux.style.color='#00b4ff'; btnUiux.style.borderColor='rgba(0,180,255,0.3)'; }
+        if (btnGrind) { btnGrind.style.background='transparent'; btnGrind.style.color='#555'; btnGrind.style.borderColor='transparent'; }
+        updatePreview();
+    } else {
+        if (uiuxPane) uiuxPane.style.display = 'none';
+        if (grindPane) grindPane.style.display = 'flex';
+        if (btnGrind) { btnGrind.style.background='rgba(0,180,255,0.15)'; btnGrind.style.color='#00b4ff'; btnGrind.style.borderColor='rgba(0,180,255,0.3)'; }
+        if (btnUiux) { btnUiux.style.background='transparent'; btnUiux.style.color='#555'; btnUiux.style.borderColor='transparent'; }
+        renderGrindProblems();
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// EDITOR TAB SWITCHER
+// ═══════════════════════════════════════════════════════════════
+window.switchEditorTab = function(tab) {
+    ['html','css','js'].forEach(t => {
+        const ta = document.getElementById('ed' + t.charAt(0).toUpperCase() + t.slice(1));
+        const btn = document.getElementById('edTab' + t.charAt(0).toUpperCase() + t.slice(1));
+        if (ta) ta.style.display = (t === tab) ? 'block' : 'none';
+        if (btn) {
+            if (t === tab) {
+                btn.style.background = 'rgba(0,180,255,0.1)';
+                btn.style.color = '#00b4ff';
+                btn.style.borderBottom = '2px solid #00b4ff';
+            } else {
+                btn.style.background = 'transparent';
+                btn.style.color = '#555';
+                btn.style.borderBottom = '2px solid transparent';
+            }
+        }
+    });
+};
+
+// ═══════════════════════════════════════════════════════════════
+// LIVE PREVIEW LOGIC
+// ═══════════════════════════════════════════════════════════════
+let autoPreviewTimer = null;
+window.autoPreview = function() {
+    clearTimeout(autoPreviewTimer);
+    autoPreviewTimer = setTimeout(updatePreview, 600);
+};
+
+window.updatePreview = function() {
+    const html = document.getElementById('edHtml') ? document.getElementById('edHtml').value : '';
+    const css = document.getElementById('edCss') ? document.getElementById('edCss').value : '';
+    const js = document.getElementById('edJs') ? document.getElementById('edJs').value : '';
+    const iframe = document.getElementById('livePreview');
+    if (!iframe) return;
+    
+    const combined = html.replace('</head>', `<style>${css}</style></head>`).replace('</body>', `<script>${js}<\/script></body>`);
+    
+    try {
+        const doc = iframe.contentDocument || iframe.contentWindow.document;
+        doc.open();
+        doc.write(combined);
+        doc.close();
+    } catch(e) {
+        iframe.srcdoc = combined;
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// LANGUAGE GRIND
+// ═══════════════════════════════════════════════════════════════
+const GRIND_PROBLEMS = [
+    // Python — Easy
+    {id:'p1', lang:'python', diff:'easy', title:'Hello World', desc:'Write a Python function that returns the string "Hello, World!".', starter:'def hello_world():\n    # Your code here\n    pass'},
+    {id:'p2', lang:'python', diff:'easy', title:'Sum of Two Numbers', desc:'Write a function sum_two(a, b) that returns the sum of two numbers.', starter:'def sum_two(a, b):\n    # Your code here\n    pass'},
+    {id:'p3', lang:'python', diff:'easy', title:'Even or Odd', desc:'Write a function is_even(n) that returns True if n is even, False otherwise.', starter:'def is_even(n):\n    # Your code here\n    pass'},
+    {id:'p4', lang:'python', diff:'easy', title:'Reverse a String', desc:'Write a function reverse_str(s) that returns the reversed string.', starter:'def reverse_str(s):\n    # Your code here\n    pass'},
+    {id:'p5', lang:'python', diff:'easy', title:'Factorial', desc:'Write a function factorial(n) that returns n! (factorial of n).', starter:'def factorial(n):\n    # Your code here\n    pass'},
+    {id:'p6', lang:'python', diff:'easy', title:'Count Vowels', desc:'Write a function count_vowels(s) that counts the number of vowels in s.', starter:'def count_vowels(s):\n    # Your code here\n    pass'},
+    {id:'p7', lang:'python', diff:'easy', title:'Max of Three', desc:'Write a function max_three(a, b, c) that returns the maximum of three numbers.', starter:'def max_three(a, b, c):\n    # Your code here\n    pass'},
+    {id:'p8', lang:'python', diff:'easy', title:'List Sum', desc:'Write a function list_sum(lst) that returns the sum of all elements in the list.', starter:'def list_sum(lst):\n    # Your code here\n    pass'},
+    {id:'p9', lang:'python', diff:'easy', title:'Palindrome Check', desc:'Write a function is_palindrome(s) that returns True if s is a palindrome.', starter:'def is_palindrome(s):\n    # Your code here\n    pass'},
+    {id:'p10', lang:'python', diff:'easy', title:'FizzBuzz', desc:'Print numbers 1-100. For multiples of 3 print "Fizz", for 5 print "Buzz", for both print "FizzBuzz".', starter:'for i in range(1, 101):\n    # Your code here\n    pass'},
+    {id:'p11', lang:'python', diff:'easy', title:'Square Root', desc:'Write a function square_root(n) that returns the square root of n without using math.sqrt.', starter:'def square_root(n):\n    # Your code here\n    pass'},
+    {id:'p12', lang:'python', diff:'easy', title:'List Flatten', desc:'Write a function flatten(lst) that flattens a nested list one level deep.', starter:'def flatten(lst):\n    # Your code here\n    pass'},
+    {id:'p13', lang:'python', diff:'easy', title:'Remove Duplicates', desc:'Write a function remove_dupes(lst) that removes duplicates while preserving order.', starter:'def remove_dupes(lst):\n    # Your code here\n    pass'},
+    {id:'p14', lang:'python', diff:'easy', title:'Word Count', desc:'Write a function word_count(s) that returns a dict of word frequencies.', starter:'def word_count(s):\n    # Your code here\n    pass'},
+    {id:'p15', lang:'python', diff:'easy', title:'Caesar Cipher', desc:'Write a function caesar(s, shift) that encodes s using a Caesar cipher with the given shift.', starter:'def caesar(s, shift):\n    # Your code here\n    pass'},
+    // Python — Medium
+    {id:'p16', lang:'python', diff:'medium', title:'Binary Search', desc:'Implement binary_search(arr, target) that returns the index of target in sorted arr, or -1.', starter:'def binary_search(arr, target):\n    # Your code here\n    pass'},
+    {id:'p17', lang:'python', diff:'medium', title:'Merge Sort', desc:'Implement merge_sort(arr) that returns a sorted copy of arr using merge sort.', starter:'def merge_sort(arr):\n    # Your code here\n    pass'},
+    {id:'p18', lang:'python', diff:'medium', title:'Two Sum', desc:'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.', starter:'def two_sum(nums, target):\n    # Your code here\n    pass'},
+    {id:'p19', lang:'python', diff:'medium', title:'Valid Parentheses', desc:'Write is_valid(s) that determines if the input string of brackets is valid.', starter:'def is_valid(s):\n    # Your code here\n    pass'},
+    {id:'p20', lang:'python', diff:'medium', title:'Linked List Reverse', desc:'Given a Python list representing a linked list, reverse it in-place.', starter:'def reverse_list(lst):\n    # Your code here\n    pass'},
+    {id:'p21', lang:'python', diff:'medium', title:'Matrix Transpose', desc:'Write transpose(matrix) that returns the transpose of a 2D matrix.', starter:'def transpose(matrix):\n    # Your code here\n    pass'},
+    {id:'p22', lang:'python', diff:'medium', title:'Anagram Check', desc:'Write is_anagram(s1, s2) that returns True if s1 and s2 are anagrams.', starter:'def is_anagram(s1, s2):\n    # Your code here\n    pass'},
+    {id:'p23', lang:'python', diff:'medium', title:'Fibonacci Memoized', desc:'Write fib(n) using memoization to compute the nth Fibonacci number efficiently.', starter:'def fib(n, memo={}):\n    # Your code here\n    pass'},
+    {id:'p24', lang:'python', diff:'medium', title:'Number to Words', desc:'Convert an integer (0–999) to its English word representation.', starter:'def num_to_words(n):\n    # Your code here\n    pass'},
+    {id:'p25', lang:'python', diff:'medium', title:'Spiral Matrix', desc:'Given an n x n matrix, return all elements in spiral order.', starter:'def spiral_order(matrix):\n    # Your code here\n    pass'},
+    // Python — Hard
+    {id:'p26', lang:'python', diff:'hard', title:'Longest Palindromic Substring', desc:'Find the longest palindromic substring in a given string.', starter:'def longest_palindrome(s):\n    # Your code here\n    pass'},
+    {id:'p27', lang:'python', diff:'hard', title:'Trapping Rain Water', desc:'Given n non-negative integers representing heights, compute how much water it can trap after raining.', starter:'def trap(height):\n    # Your code here\n    pass'},
+    {id:'p28', lang:'python', diff:'hard', title:'LRU Cache', desc:'Design and implement a Least Recently Used (LRU) cache with get and put operations in O(1).', starter:'class LRUCache:\n    def __init__(self, capacity):\n        pass\n    def get(self, key):\n        pass\n    def put(self, key, value):\n        pass'},
+    {id:'p29', lang:'python', diff:'hard', title:'N-Queens', desc:'Solve the N-Queens puzzle. Return all distinct solutions as lists of queen positions.', starter:'def solve_n_queens(n):\n    # Your code here\n    pass'},
+    {id:'p30', lang:'python', diff:'hard', title:'Regular Expression Match', desc:'Implement regex matching with . (any char) and * (zero or more).', starter:'def is_match(s, p):\n    # Your code here\n    pass'},
+    // C — Easy
+    {id:'c1', lang:'c', diff:'easy', title:'Hello World', desc:'Write a C program that prints "Hello, World!" to stdout.', starter:'#include <stdio.h>\n\nint main() {\n    // Your code here\n    return 0;\n}'},
+    {id:'c2', lang:'c', diff:'easy', title:'Sum of Two Integers', desc:'Write a C function int sum(int a, int b) that returns a + b.', starter:'#include <stdio.h>\n\nint sum(int a, int b) {\n    // Your code here\n}\n\nint main() {\n    printf("%d\\n", sum(3, 5));\n    return 0;\n}'},
+    {id:'c3', lang:'c', diff:'easy', title:'Fibonacci', desc:'Write a C program that prints the first 10 Fibonacci numbers.', starter:'#include <stdio.h>\n\nint main() {\n    // Your code here\n    return 0;\n}'},
+    {id:'c4', lang:'c', diff:'easy', title:'Reverse Array', desc:'Write a C program that reverses an array of 5 integers.', starter:'#include <stdio.h>\n\nvoid reverse(int arr[], int n) {\n    // Your code here\n}\n\nint main() {\n    int a[] = {1,2,3,4,5};\n    reverse(a, 5);\n    for(int i=0; i<5; i++) printf("%d ", a[i]);\n    return 0;\n}'},
+    {id:'c5', lang:'c', diff:'easy', title:'Bubble Sort', desc:'Implement bubble sort in C.', starter:'#include <stdio.h>\n\nvoid bubble_sort(int arr[], int n) {\n    // Your code here\n}\n\nint main() {\n    int a[] = {5,3,8,1,2};\n    bubble_sort(a, 5);\n    for(int i=0;i<5;i++) printf("%d ",a[i]);\n    return 0;\n}'},
+    // C — Medium
+    {id:'c6', lang:'c', diff:'medium', title:'Linked List', desc:'Implement a singly linked list in C with insert and print functions.', starter:'#include <stdio.h>\n#include <stdlib.h>\n\ntypedef struct Node {\n    int val;\n    struct Node* next;\n} Node;\n\n// Insert at head\nNode* insert(Node* head, int val) {\n    // Your code here\n    return head;\n}\n\nvoid print_list(Node* head) {\n    // Your code here\n}\n\nint main() {\n    Node* head = NULL;\n    head = insert(head, 1);\n    head = insert(head, 2);\n    head = insert(head, 3);\n    print_list(head);\n    return 0;\n}'},
+    {id:'c7', lang:'c', diff:'medium', title:'Binary Tree', desc:'Implement a binary search tree in C with insert and inorder traversal.', starter:'#include <stdio.h>\n#include <stdlib.h>\n\ntypedef struct Node {\n    int val;\n    struct Node *left, *right;\n} Node;\n\nNode* insert(Node* root, int val) {\n    // Your code here\n    return root;\n}\n\nvoid inorder(Node* root) {\n    // Your code here\n}\n\nint main() {\n    Node* root = NULL;\n    int vals[] = {5,3,7,1,4,6,8};\n    for(int i=0;i<7;i++) root = insert(root, vals[i]);\n    inorder(root);\n    return 0;\n}'},
+    // Java — Easy
+    {id:'j1', lang:'java', diff:'easy', title:'Hello World', desc:'Write a Java class that prints "Hello, World!".', starter:'public class Solution {\n    public static void main(String[] args) {\n        // Your code here\n    }\n}'},
+    {id:'j2', lang:'java', diff:'easy', title:'Fibonacci', desc:'Write a Java method that returns the nth Fibonacci number.', starter:'public class Solution {\n    public static int fib(int n) {\n        // Your code here\n        return 0;\n    }\n    public static void main(String[] args) {\n        System.out.println(fib(10));\n    }\n}'},
+    {id:'j3', lang:'java', diff:'easy', title:'String Reverse', desc:'Write a Java method that reverses a given string.', starter:'public class Solution {\n    public static String reverse(String s) {\n        // Your code here\n        return "";\n    }\n    public static void main(String[] args) {\n        System.out.println(reverse("Luna"));\n    }\n}'},
+    // Java — Medium
+    {id:'j4', lang:'java', diff:'medium', title:'Implement Stack', desc:'Implement a stack using an array in Java with push, pop, peek operations.', starter:'public class Solution {\n    static int[] stack = new int[100];\n    static int top = -1;\n    \n    public static void push(int val) {\n        // Your code here\n    }\n    public static int pop() {\n        // Your code here\n        return -1;\n    }\n    public static int peek() {\n        // Your code here\n        return -1;\n    }\n    public static void main(String[] args) {\n        push(1); push(2); push(3);\n        System.out.println(pop()); // 3\n        System.out.println(peek()); // 2\n    }\n}'},
+    // Java — Hard
+    {id:'j5', lang:'java', diff:'hard', title:'LRU Cache Java', desc:'Design and implement an LRU Cache in Java using LinkedHashMap.', starter:'import java.util.*;\n\npublic class LRUCache {\n    private final int capacity;\n    private final LinkedHashMap<Integer,Integer> cache;\n    \n    public LRUCache(int capacity) {\n        // Your code here\n    }\n    public int get(int key) {\n        // Your code here\n        return -1;\n    }\n    public void put(int key, int value) {\n        // Your code here\n    }\n    public static void main(String[] args) {\n        LRUCache c = new LRUCache(2);\n        c.put(1,1); c.put(2,2);\n        System.out.println(c.get(1)); // 1\n        c.put(3,3);\n        System.out.println(c.get(2)); // -1 (evicted)\n    }\n}'}
+];
+
+let currentGrindLang = 'python';
+let currentGrindFilter = 'all';
+let currentGrindProblem = null;
+let solvedProblems = JSON.parse(localStorage.getItem('luna_grind_solved') || '[]');
+
+window.renderGrindProblems = function() {
+    const list = document.getElementById('grindProblemList');
+    if (!list) return;
+    
+    let filtered = GRIND_PROBLEMS.filter(p => p.lang === currentGrindLang && (currentGrindFilter === 'all' || p.diff === currentGrindFilter));
+    
+    const diffColors = { easy:'#00c864', medium:'orange', hard:'#ff4444' };
+    const diffBg = { easy:'rgba(0,200,100,0.08)', medium:'rgba(255,165,0,0.08)', hard:'rgba(255,60,60,0.08)' };
+    
+    list.innerHTML = filtered.map(p => {
+        const solved = solvedProblems.includes(p.id);
+        return `<div onclick="loadGrindProblem('${p.id}')" style="padding:8px 10px;margin-bottom:4px;border-radius:8px;background:${currentGrindProblem && currentGrindProblem.id===p.id ? 'rgba(0,180,255,0.1)' : diffBg[p.diff]};border:1px solid ${currentGrindProblem && currentGrindProblem.id===p.id ? 'rgba(0,180,255,0.3)' : 'rgba(255,255,255,0.05)'};cursor:pointer;transition:0.2s;" onmouseover="this.style.background='rgba(0,180,255,0.1)'" onmouseout="this.style.background='${currentGrindProblem && currentGrindProblem.id===p.id ? 'rgba(0,180,255,0.1)' : diffBg[p.diff]}'">
+            <div style="display:flex;align-items:center;gap:6px;justify-content:space-between;">
+                <span style="font-size:0.7rem;color:#ccc;">${p.title}</span>
+                <div style="display:flex;align-items:center;gap:4px;">
+                    ${solved ? '<span style="color:#00ff64;font-size:0.6rem;">✓</span>' : ''}
+                    <span style="font-size:0.55rem;color:${diffColors[p.diff]};background:rgba(0,0,0,0.3);padding:1px 6px;border-radius:10px;">${p.diff}</span>
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+    
+    document.getElementById('grindSolved').textContent = solvedProblems.length;
+};
+
+window.loadGrindProblem = function(id) {
+    const p = GRIND_PROBLEMS.find(x => x.id === id);
+    if (!p) return;
+    currentGrindProblem = p;
+    
+    const desc = document.getElementById('grindProblemDesc');
+    const code = document.getElementById('grindCode');
+    const out = document.getElementById('grindOutput');
+    if (desc) desc.innerHTML = `<strong style="color:#00b4ff;">${p.title}</strong> <span style="font-size:0.55rem;color:${p.diff==='easy'?'#00c864':p.diff==='medium'?'orange':'#ff4444'};margin-left:8px;">${p.diff.toUpperCase()}</span><br/><span style="color:#aaa;">${p.desc}</span>`;
+    if (code) code.value = p.starter.replace(/\\n/g,'\n');
+    if (out) out.textContent = '→ Run your code to see output';
+    
+    renderGrindProblems();
+};
+
+window.setGrindLang = function(lang) {
+    currentGrindLang = lang;
+    currentGrindProblem = null;
+    const label = document.getElementById('grindLangLabel');
+    if (label) label.textContent = lang.toUpperCase();
+    
+    ['grindPython','grindC','grindJava'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (!btn) return;
+        const isActive = id.replace('grind','').toLowerCase() === lang;
+        btn.style.borderColor = isActive ? 'rgba(0,180,255,0.4)' : 'rgba(255,255,255,0.08)';
+        btn.style.background = isActive ? 'rgba(0,180,255,0.1)' : 'transparent';
+        btn.style.color = isActive ? '#00b4ff' : '#555';
+    });
+    renderGrindProblems();
+};
+
+window.filterGrind = function(diff) {
+    currentGrindFilter = diff;
+    const filterBtns = { all:'grindAll', easy:'grindEasy', medium:'grindMed', hard:'grindHard' };
+    Object.entries(filterBtns).forEach(([d, id]) => {
+        const btn = document.getElementById(id);
+        if (btn) btn.style.fontWeight = (d === diff) ? '700' : '400';
+    });
+    renderGrindProblems();
+};
+
+window.runGrindCode = function() {
+    const code = document.getElementById('grindCode');
+    const out = document.getElementById('grindOutput');
+    if (!code || !out) return;
+    
+    if (currentGrindLang === 'python') {
+        if (window.electronAPI) {
+            out.textContent = '⏳ Running...';
+            const pyCode = code.value;
+            window.electronAPI.executeCode('python_run', pyCode).then(result => {
+                out.textContent = result || '→ No output';
+                if (currentGrindProblem && !solvedProblems.includes(currentGrindProblem.id)) {
+                    solvedProblems.push(currentGrindProblem.id);
+                    localStorage.setItem('luna_grind_solved', JSON.stringify(solvedProblems));
+                    renderGrindProblems();
+                }
+            }).catch(e => { out.textContent = '❌ Error: ' + e.message; });
+        } else {
+            // Browser fallback - try to eval JS-like simple Python
+            out.textContent = '⚠️ Python execution requires the desktop app.\n\nHint: Open Luna OS via boot.bat to enable code execution.';
+        }
+    } else {
+        out.textContent = `⚠️ ${currentGrindLang.toUpperCase()} compilation requires backend support.\nOpen the Luna desktop app to run ${currentGrindLang.toUpperCase()} code.`;
+    }
+};
+
+// ═══════════════════════════════════════════════════════════════
+// FLOATING AI DEBUG OVERLAY
+// ═══════════════════════════════════════════════════════════════
+window.openAiDebugOverlay = function() {
+    const overlay = document.getElementById('aiDebugOverlay');
+    if (overlay) overlay.classList.remove('hidden');
+    
+    // Pre-fill context if in UI/UX mode
+    const uiuxPane = document.getElementById('consUiuxPane');
+    const grindCode = document.getElementById('grindCode');
+    const input = document.getElementById('aiDebugInput');
+    
+    if (uiuxPane && uiuxPane.style.display !== 'none') {
+        // Get active editor code
+        const activeTab = document.getElementById('edHtml') && document.getElementById('edHtml').style.display !== 'none' ? 'edHtml' :
+                          document.getElementById('edCss') && document.getElementById('edCss').style.display !== 'none' ? 'edCss' : 'edJs';
+        const code = document.getElementById(activeTab);
+        if (code && input) input.placeholder = `Ask about your ${activeTab.replace('ed','').toUpperCase()} code...`;
+    } else if (grindCode && input) {
+        input.placeholder = `Ask Luna to debug: ${currentGrindProblem ? currentGrindProblem.title : 'your code'}...`;
+    }
+};
+
+window.sendAiDebugMessage = async function() {
+    const input = document.getElementById('aiDebugInput');
+    const msgs = document.getElementById('aiDebugMessages');
+    if (!input || !msgs) return;
+    
+    const userText = input.value.trim();
+    if (!userText) return;
+    input.value = '';
+    
+    // Get code context
+    let codeContext = '';
+    const uiuxPane = document.getElementById('consUiuxPane');
+    if (uiuxPane && uiuxPane.style.display !== 'none') {
+        const activeEditor = ['edHtml','edCss','edJs'].find(id => {
+            const el = document.getElementById(id);
+            return el && el.style.display !== 'none';
+        });
+        const codeEl = activeEditor ? document.getElementById(activeEditor) : null;
+        if (codeEl) codeContext = codeEl.value.substring(0, 800);
+    } else {
+        const gc = document.getElementById('grindCode');
+        if (gc) codeContext = gc.value.substring(0, 800);
+    }
+    
+    const prompt = codeContext ? `Code context:\n\`\`\`\n${codeContext}\n\`\`\`\n\nUser: ${userText}` : userText;
+    
+    // Add user message
+    const userDiv = document.createElement('div');
+    userDiv.style.cssText = 'padding:8px 10px;border-radius:8px;background:rgba(0,180,255,0.08);border:1px solid rgba(0,180,255,0.15);font-size:0.75rem;color:#ccc;align-self:flex-end;max-width:90%;word-break:break-word;';
+    userDiv.textContent = userText;
+    msgs.appendChild(userDiv);
+    
+    // Loading indicator
+    const loadDiv = document.createElement('div');
+    loadDiv.style.cssText = 'padding:8px 10px;font-size:0.75rem;color:#555;font-style:italic;';
+    loadDiv.innerHTML = '<span style="animation:ldot 1.4s infinite;display:inline-block;">⋯</span> Luna is thinking...';
+    msgs.appendChild(loadDiv);
+    msgs.scrollTop = msgs.scrollHeight;
+    
+    try {
+        let aiResponse = 'AI debug endpoint not available in browser mode. Launch via boot.bat for full AI support.';
+        if (typeof callAI === 'function') {
+            aiResponse = await callAI(prompt, 1);
+        } else if (window.electronAPI && window.electronAPI.callLLM) {
+            aiResponse = await window.electronAPI.callLLM(prompt);
+        }
+        
+        loadDiv.remove();
+        const aiDiv = document.createElement('div');
+        aiDiv.style.cssText = 'padding:8px 10px;border-radius:8px;background:rgba(0,255,100,0.05);border:1px solid rgba(0,255,100,0.1);font-size:0.75rem;color:#ccc;max-width:95%;word-break:break-word;white-space:pre-wrap;line-height:1.5;';
+        aiDiv.innerHTML = '<span style="color:#00b4ff;font-size:0.6rem;font-family:Orbitron,sans-serif;letter-spacing:1px;display:block;margin-bottom:4px;">LUNA AI ✦</span>' + aiResponse;
+        msgs.appendChild(aiDiv);
+    } catch(e) {
+        loadDiv.textContent = '❌ ' + e.message;
+    }
+    msgs.scrollTop = msgs.scrollHeight;
+};
+
+// Initialize grind problems
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(renderGrindProblems, 1000);
+});
