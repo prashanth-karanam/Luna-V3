@@ -3794,7 +3794,7 @@ document.addEventListener('DOMContentLoaded', () => {
         setupModalTrigger(msgRadio, msgModal);
 
         const dashRadio = document.getElementById('m-dashboard');
-        if(dashRadio) { dashRadio.addEventListener('change', (e) => { if(e.target.checked) { settingsModal.classList.add('hidden'); helpModal.classList.add('hidden'); profileModal.classList.add('hidden'); msgModal.classList.add('hidden'); setTimeout(()=>{e.target.checked=true;}, 100); } }); }
+        if(dashRadio) { dashRadio.addEventListener('click', (e) => { if(e.target.checked) { settingsModal.classList.add('hidden'); helpModal.classList.add('hidden'); profileModal.classList.add('hidden'); msgModal.classList.add('hidden'); setTimeout(()=>{e.target.checked=true;}, 100); } }); }
 
     }, 2000); // Wait for DOM parsing
 });
@@ -3979,4 +3979,5 @@ document.addEventListener('DOMContentLoaded', () => {
         updateDashLayout();
     }
 });
+
 
