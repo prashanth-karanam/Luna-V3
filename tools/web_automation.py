@@ -5,18 +5,6 @@ import time
 import os
 from playwright.sync_api import sync_playwright
 
-def find_chrome_path():
-    paths = [
-        r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-        r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-        r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
-        r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
-    ]
-    for p in paths:
-        if os.path.exists(p):
-            return p
-    return None
-
 def main():
     if len(sys.argv) < 2:
         print(json.dumps({"error": "No action provided"}))
@@ -30,7 +18,7 @@ def main():
         page = None
         
         try:
-            # Add a 1000ms timeout. If Chrome isn't running, we don't want to wait 30 seconds to find out!
+            # Try connecting to existing Playwright Chromium process
             browser = p.chromium.connect_over_cdp("http://localhost:9222", timeout=1000)
             context = browser.contexts[0]
             if len(context.pages) > 0:
@@ -42,13 +30,10 @@ def main():
                 print(json.dumps({"ok": True, "status": "closed"}))
                 return
                 
-            # Need to launch chrome
-            chrome_path = find_chrome_path()
-            if not chrome_path:
-                print(json.dumps({"error": "Chrome or Edge not found"}))
-                return
+            # Launch Playwright's bundled Chromium popup instead of hijacking user's Edge/Chrome
+            chrome_path = p.chromium.executable_path
             
-            user_data = os.path.join(os.environ.get('APPDATA', ''), 'LunaAI', 'ChromeProfile')
+            user_data = os.path.join(os.environ.get('APPDATA', ''), 'LunaAI', 'AutomationProfile')
             os.makedirs(user_data, exist_ok=True)
             
             subprocess.Popen([

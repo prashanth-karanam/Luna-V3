@@ -91,25 +91,26 @@ function initSystemController() {
         browserName = data.browserName ? data.browserName.toLowerCase() : 'default';
       }
       
-      if (browserName === 'default') {
-        await shell.openExternal(url);
-      } else {
-        let exe = 'start ""';
-        if (browserName.includes('chrome')) exe = 'start chrome';
-        else if (browserName.includes('edge')) exe = 'start msedge';
-        else if (browserName.includes('brave')) exe = 'start brave';
-        else if (browserName.includes('firefox')) exe = 'start firefox';
-        else {
-           const ps1Path = path.join(__dirname, '..', '..', 'utils', 'launch_app.ps1');
-           exec(`powershell -ExecutionPolicy Bypass -File "${ps1Path}" "${browserName}"`);
-           return { ok: true };
-        }
-  
-        exec(`${exe} "${url}"`, (err) => {
-           if (err) shell.openExternal(url); // fallback to default if missing
+      // ALWAYS use Playwright Chromium via browser_tool.py — never open system browsers
+      const scriptPath = path.join(__dirname, '..', '..', 'tools', 'browser_tool.py');
+      return new Promise((resolve) => {
+        const { spawn } = require('child_process');
+        const proc = spawn('python', [scriptPath, 'open', url]);
+        let stdout = '';
+        proc.stdout.on('data', (d) => stdout += d.toString());
+        proc.stderr.on('data', (d) => console.error('[browser_tool]', d.toString()));
+        proc.on('close', (code) => {
+          try {
+            if (stdout.trim()) {
+              resolve(JSON.parse(stdout.trim().split('\n').pop()));
+            } else {
+              resolve({ ok: code === 0, message: 'Browser tool completed' });
+            }
+          } catch(e) {
+            resolve({ ok: false, error: 'Failed to parse browser_tool output' });
+          }
         });
-      }
-      return { ok: true };
+      });
     } catch(e) { return { error: e.message }; }
   });
 

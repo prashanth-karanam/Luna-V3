@@ -1,4 +1,4 @@
-﻿
+
 async function fetchWithTimeout(resource, options = {}) {
     const { timeout = 120000 } = options;
     const controller = new AbortController();
@@ -95,10 +95,22 @@ ${(cfg.showThoughts !== false) ? `For EVERY request, you MUST output your intern
   The query is: platform|receiver|message. The backend handles everything.
 - OPEN APP / URL: Use tool "OPEN_APP" (query is app name) or "WEB_GO" (query is full URL). 
   Format: {"tool": "OPEN_APP", "query": "Microsoft Edge"}
+- PROFILE / CHANNEL NAVIGATION: If the user wants to visit someone's profile or channel, use "WEB_GO" with the direct URL.
+  Instagram profile: {"tool": "WEB_GO", "query": "https://www.instagram.com/USERNAME/"}
+  YouTube channel: {"tool": "WEB_GO", "query": "https://www.youtube.com/@USERNAME"}
+  Twitter/X profile: {"tool": "WEB_GO", "query": "https://www.twitter.com/USERNAME"}
+  GitHub profile: {"tool": "WEB_GO", "query": "https://www.github.com/USERNAME"}
+- PLAY VIDEO/SONG: To play a YouTube video or song, use WEB_GO with a YouTube search URL.
+  Format: {"tool": "WEB_GO", "query": "https://www.youtube.com/results?search_query=SONG+NAME"}
+- BROWSER DATA EXTRACTION: Leverage the browser to extract information.
+  * "WEB_READ" (No query): Returns the full body text of the current page.
+  * "WEB_EXTRACT" (query is CSS selector): Extracts text from specific elements. (e.g. {"tool": "WEB_EXTRACT", "query": "span.followers"})
+  * "WEB_DOM_MAP" (No query): Maps all clickable/interactive elements with their selectors for use with WEB_CLICK.
 - DESKTOP AUTOMATION: Use tools "DESKTOP_TYPE", "DESKTOP_PRESS", "WEB_CLICK".
 RULES:
-* If the user asks you to search for something, check the SYSTEM CONTEXT first! If the active window is ALREADY a browser (like Microsoft Edge or Chrome) or a file explorer, DO NOT launch a new browser! Simply use DESKTOP_TYPE to type the query into the already focused window, and DESKTOP_PRESS:enter to execute it!
-* If user says "open insta", use OPEN_APP. If user says "message X on insta", use SEND_MESSAGE.
+* If the user asks you to do a "silent" or "background" search, use SILENT_SEARCH. It is fast and runs in the background.
+* If the user asks to search inside a specific desktop app (like Opera or Edge), use DESKTOP_SEARCH. Format: {"tool": "DESKTOP_SEARCH", "query": "opera|your search query"}. This will automatically open the app, type the query, and press Enter in one lightning-fast step.
+* If user says "open insta", use OPEN_APP. If user says "message X on insta", use SEND_MESSAGE. If user says "go to X profile on insta", use WEB_GO.
 * On error feedback, retry immediately with correct format. No apologies.
 * On success feedback, briefly confirm success to the user in your "response" (e.g. "Done!").`;
   }
@@ -737,7 +749,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
     if (aw && aw.ok && aw.title) {
        tempContext += `[SYSTEM CONTEXT: Foreground Active Window Title is '${aw.title}']\n`;
     }
-    const res = await window.electronAPI.runPython('web_automation.py', ['status']);
+    const res = await window.electronAPI.runPython('browser_tool.py', ['status']);
     if (res && res.status === 'open') {
       tempContext += `[SYSTEM CONTEXT: Automation Browser is OPEN. Active Tab: '${res.title}', URL: '${res.url}']\n`;
     } else {
@@ -762,7 +774,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
   };
   const knownAppNames = Object.keys(APP_URL_MAP).sort((a,b) => b.length - a.length).join('|');
 
-  const actionRegex = /\b(search|open|app|click|type|file|dir|folder|cmd|run|web|google|news|latest|score|match|weather|download|install|send|message|dm|whatsapp|instagram|insta|telegram|discord|email|mail)\b/i;
+  const actionRegex = /\b(search|open|app|click|type|file|dir|folder|cmd|run|web|google|news|latest|score|match|weather|download|install|send|message|dm|whatsapp|instagram|insta|telegram|discord|email|mail|extract|read|map|followers|subs|likes)\b/i;
   const openAppRegex = new RegExp(`\\b(open|launch)\\b.*\\b(${knownAppNames})\\b`, 'i');
   
   let requireCloudAction = false;
@@ -770,6 +782,108 @@ If the user asks you to search, open apps, or do anything on their computer, you
   const isCompound = /\band\s+(search|find|open|tell|read|check|show|write|send)\b/i.test(lowerQuery) || (lowerQuery.split(' ').length > 8 && lowerQuery.includes('and'));
     if ((actionRegex.test(lowerQuery) || depth > 0) && hasCloudKey && (!openAppRegex.test(lowerQuery) || isCompound)) {
       requireCloudAction = true;
+  }
+
+  // Fast-Path: Profile navigation — "go to X profile on insta/youtube/etc"
+  const profileRegex = /(?:go\s+to|visit|show|open)\s+(.+?)(?:'s)?\s+(?:profile|channel|page|account)\s+(?:on|in)\s+(instagram|insta|ig|youtube|yt|twitter|x|github|reddit|tiktok|linkedin|facebook|fb)/i;
+  const profileMatch2 = lowerQuery.match(profileRegex);
+  if (profileMatch2) {
+      const username = profileMatch2[1].trim().replace(/^@/, '');
+      const platform = profileMatch2[2].toLowerCase();
+      console.log(`[LUNA-ROUTER] Fast-Path: Profile navigation -> opening ${username} on ${platform}`);
+      const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+      if (typeof addBubbleReveal === 'function') {
+          addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">Opening ${username}'s profile on ${platform}...</span></div>`);
+      }
+      if (window.electronAPI) {
+          await window.electronAPI.runPython('browser_tool.py', ['profile', platform, username]);
+          const cb = document.getElementById(cbId);
+          if (cb) { cb.checked = true; cb.parentElement.querySelector('.label').style.color = 'var(--checkbox-color)'; }
+      }
+      const reply = `I've opened ${username}'s profile on ${platform}!`;
+      state.history.push({ role: 'model', text: reply });
+      saveHistory();
+      return reply;
+  }
+
+  // Fast-Path: "go to <username> in/on insta" (without the word "profile")
+  const goToUserRegex = /(?:go\s+to|visit)\s+(.+?)\s+(?:on|in)\s+(instagram|insta|ig|youtube|yt|twitter|x|github)/i;
+  const goToUserMatch = lowerQuery.match(goToUserRegex);
+  if (goToUserMatch && !requireCloudAction) {
+      const username = goToUserMatch[1].trim().replace(/^@/, '');
+      const platform = goToUserMatch[2].toLowerCase();
+      // Only match if username looks like a username (no spaces, short)
+      if (username.length < 30 && !/\s/.test(username)) {
+          console.log(`[LUNA-ROUTER] Fast-Path: Profile navigation -> opening ${username} on ${platform}`);
+          const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+          if (typeof addBubbleReveal === 'function') {
+              addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">Opening ${username} on ${platform}...</span></div>`);
+          }
+          if (window.electronAPI) {
+              await window.electronAPI.runPython('browser_tool.py', ['profile', platform, username]);
+              const cb = document.getElementById(cbId);
+              if (cb) { cb.checked = true; cb.parentElement.querySelector('.label').style.color = 'var(--checkbox-color)'; }
+          }
+          const reply = `I've opened ${username}'s profile on ${platform}!`;
+          state.history.push({ role: 'model', text: reply });
+          saveHistory();
+          return reply;
+      }
+  }
+
+  // Fast-Path: "play <query> on youtube"
+  const playRegex = /(?:play|put\s+on)\s+(.+?)\s+(?:on|in)\s+(?:youtube|yt)/i;
+  const playMatch = lowerQuery.match(playRegex);
+  if (playMatch) {
+      let query = playMatch[1].trim();
+      const isFullscreen = lowerQuery.includes('fullscreen') || lowerQuery.includes('full screen');
+      if (isFullscreen) query = query.replace(/(?:in\s+)?full\s?screen/ig, '').trim();
+      
+      console.log(`[LUNA-ROUTER] Fast-Path: Play navigation -> playing "${query}" on YouTube (Fullscreen: ${isFullscreen})`);
+      const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+      if (typeof addBubbleReveal === 'function') {
+          addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">Playing "${query}"...</span></div>`);
+      }
+      if (window.electronAPI) {
+          const args = ['play', query];
+          if (isFullscreen) args.push('fullscreen');
+          await window.electronAPI.runPython('browser_tool.py', args);
+          const cb = document.getElementById(cbId);
+          if (cb) { cb.checked = true; cb.parentElement.querySelector('.label').style.color = 'var(--checkbox-color)'; }
+      }
+      const reply = `Now playing "${query}" on YouTube!`;
+      state.history.push({ role: 'model', text: reply });
+      saveHistory();
+      return reply;
+  }
+
+  const explicitAppSearchRegex = /^(?:open|launch)\s+(opera|edge|microsoft edge|ms edge|chrome|google chrome)\s+and\s+(?:search\s+for|search|find|look\s+up)\s+(.+)$/i;
+  const explicitAppSearchMatch = lowerQuery.match(explicitAppSearchRegex);
+  if (explicitAppSearchMatch) {
+      const appKey = explicitAppSearchMatch[1].toLowerCase();
+      const query = explicitAppSearchMatch[2].trim();
+      const resolved = APP_URL_MAP[appKey] || appKey;
+      
+      const cbId = 'tool_cb_' + Date.now() + '_' + Math.floor(Math.random()*1000);
+      if (typeof addBubbleReveal === 'function') {
+          addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" disabled /><div class="checkmark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">Searching for "${query}" in ${appKey}...</span></div>`);
+      }
+
+      if (window.electronAPI) {
+          await window.electronAPI.runPython('app_launcher.py', [resolved]);
+          await new Promise(r => setTimeout(r, 2000));
+          await window.electronAPI.keyboardType(query);
+          await new Promise(r => setTimeout(r, 100));
+          await window.electronAPI.keyboardPress('enter');
+          
+          const cb = document.getElementById(cbId);
+          if (cb) { cb.checked = true; cb.parentElement.querySelector('.label').style.color = 'var(--checkbox-color)'; }
+      }
+      
+      const reply = `I've opened ${appKey} and searched for "${query}"!`;
+      state.history.push({ role: 'model', text: reply });
+      saveHistory();
+      return reply;
   }
 
   const openKnownRegex = new RegExp(`\\b(?:open|launch)\\s+(?:the\\s+|my\\s+)?(${knownAppNames})\\b`, 'i');
@@ -790,7 +904,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
           if (window.electronAPI) {
               let res;
               if (isUrl) {
-                  res = await window.electronAPI.runPython('web_automation.py', ['goto', resolved]);
+                  res = await window.electronAPI.runPython('browser_tool.py', ['open', resolved]);
               } else {
                   res = await window.electronAPI.runPython('app_launcher.py', [resolved]);
               }
@@ -807,7 +921,10 @@ If the user asks you to search, open apps, or do anything on their computer, you
               await new Promise(r => setTimeout(r, 1500)); // Wait for app to become active window
               return await callAI(remaining, failCount, depth, onChunk);
           }
-          return `I've opened ${appKey} for you!`;
+          const reply = `I've opened ${appKey} for you!`;
+          state.history.push({ role: 'model', text: reply });
+          saveHistory();
+          return reply;
       }
   }
 
@@ -859,6 +976,12 @@ If the user asks you to search, open apps, or do anything on their computer, you
       fullText += chunk;
       if (onChunk) onChunk(fullText, chunk);
     });
+    
+    if (window.electronAPI.onLLMLog) {
+        window.electronAPI.onLLMLog((msg) => {
+            console.log(msg);
+        });
+    }
     
     window.electronAPI.onLLMError((err) => {
       stopBrainActivity();
@@ -2913,17 +3036,17 @@ const AI_COMMAND_REGISTRY = {
     'WEB_SEARCH': async (match, feedback) => {
         if (window.electronAPI) {
             const query = match[1].trim().replace(/^["']|["']$/g, '');
-            // Forced to use SILENT_SEARCH duckduckgo API instead of launching the browser.
-            const pyCode = `import duckduckgo_search\nprint(duckduckgo_search.DDGS().text("${query}", max_results=3))`;
-            const res = await window.electronAPI.executeCode('python', pyCode);
-            let out = (res.ok && res.output) ? res.output : ((res.error) ? res.error + "\n" + res.output : "Failed to search web");
-            feedback.push(`[WEB_SEARCH_RESULTS for ${query}]:\n${out}`);
+            console.log(`[LUNA-TOOL] Executing WEB_SEARCH for "${query}" via browser_tool.py`);
+            const res = await window.electronAPI.runPython('browser_tool.py', ['search', query]);
+            let output = res.ok ? 'Success' : (res.error || 'Unknown error');
+            if (res.message) output += ' ' + res.message;
+            feedback.push(`[SYSTEM]: Search opened for ${query}. Result: ${output}`);
         }
     },
     'WEB_GO': async (match, feedback) => {
         if (window.electronAPI) {
             const url = match[1].trim().replace(/^["']|["']$/g, '');
-            const res = await window.electronAPI.runPython('web_automation.py', ['goto', url]);
+            const res = await window.electronAPI.runPython('browser_tool.py', ['open', url]);
             let output = res.ok ? 'Success' : (res.error || 'Unknown error');
             if (res.message) output += ' ' + res.message;
             feedback.push(`[SYSTEM]: Navigated to ${url}. Result: ${output}`);
@@ -2938,6 +3061,19 @@ const AI_COMMAND_REGISTRY = {
             } else {
                 feedback.push(`[SYSTEM]: Failed to launch ${appName}. Error: ${res.error || 'Unknown'}`);
             }
+        }
+    },
+    'DESKTOP_SEARCH': async (match, feedback) => {
+        if (window.electronAPI) {
+            const appName = match[1].trim();
+            const query = match[2].trim();
+            const resolved = APP_URL_MAP[appName.toLowerCase()] || appName;
+            await window.electronAPI.runPython('app_launcher.py', [resolved]);
+            await new Promise(r => setTimeout(r, 2000));
+            await window.electronAPI.keyboardType(query);
+            await new Promise(r => setTimeout(r, 100));
+            await window.electronAPI.keyboardPress('enter');
+            feedback.push(`[SYSTEM]: Opened ${appName} and searched for ${query}.`);
         }
     },
     'DESKTOP_TYPE': async (match, feedback) => {
@@ -2955,7 +3091,7 @@ const AI_COMMAND_REGISTRY = {
     'WEB_CLICK': async (match, feedback) => {
         if (window.electronAPI) {
             const sel = match[1].trim();
-            const res = await window.electronAPI.runPython('web_automation.py', ['click', sel]);
+            const res = await window.electronAPI.runPython('browser_tool.py', ['click', sel]);
             let output = res.ok ? (res.message || 'Success') : (res.error || 'Unknown error');
             feedback.push(`[SYSTEM]: WEB_CLICK Result: ${output}`);
         }
@@ -2963,9 +3099,34 @@ const AI_COMMAND_REGISTRY = {
     'WEB_PRESS': async (match, feedback) => {
         if (window.electronAPI) {
             const key = match[1].trim();
-            const res = await window.electronAPI.runPython('web_automation.py', ['press', key]);
+            const res = await window.electronAPI.runPython('browser_tool.py', ['press', key]);
             let output = res.ok ? (res.message || 'Success') : (res.error || 'Unknown error');
             feedback.push(`[SYSTEM]: WEB_PRESS Result: ${output}`);
+        }
+    },
+    'WEB_READ': async (match, feedback) => {
+        if (window.electronAPI) {
+            console.log('[LUNA-TOOL] Executing WEB_READ via browser_tool.py');
+            const res = await window.electronAPI.runPython('browser_tool.py', ['read']);
+            let output = res.ok ? (res.text || 'Success') : (res.error || 'Unknown error');
+            feedback.push(`[SYSTEM]: WEB_READ Result:\n${output}`);
+        }
+    },
+    'WEB_EXTRACT': async (match, feedback) => {
+        if (window.electronAPI) {
+            const sel = match[1].trim();
+            console.log(`[LUNA-TOOL] Executing WEB_EXTRACT for selector "${sel}" via browser_tool.py`);
+            const res = await window.electronAPI.runPython('browser_tool.py', ['extract', sel]);
+            let output = res.ok ? (res.text || 'Success') : (res.error || 'Unknown error');
+            feedback.push(`[SYSTEM]: WEB_EXTRACT for '${sel}' Result:\n${output}`);
+        }
+    },
+    'WEB_DOM_MAP': async (match, feedback) => {
+        if (window.electronAPI) {
+            console.log('[LUNA-TOOL] Executing WEB_DOM_MAP via browser_tool.py');
+            const res = await window.electronAPI.runPython('browser_tool.py', ['dom_map']);
+            let output = res.ok ? (res.text || 'Success') : (res.error || 'Unknown error');
+            feedback.push(`[SYSTEM]: WEB_DOM_MAP Result:\n${output}`);
         }
     },
     'SEND_MESSAGE': async (match, feedback) => {
@@ -2976,10 +3137,12 @@ const AI_COMMAND_REGISTRY = {
                 return;
             }
             
+            const platform = args[0].trim().toLowerCase();
+            const receiver = args[1].trim();
+            const textMsg = args.slice(2).join('|').trim();
+            
             // Multi-step UI visualization
             if (typeof addBubbleReveal === 'function') {
-                const receiver = args[1].trim();
-                const textMsg = args.slice(2).join('|').trim();
                 const displayMsg = textMsg.length > 15 ? textMsg.substring(0, 15) + '...' : textMsg;
                 const steps = [
                     "Opening Browser...",
@@ -2991,17 +3154,19 @@ const AI_COMMAND_REGISTRY = {
                     setTimeout(() => {
                         const cbId = 'cb_step_' + Date.now() + '_' + i;
                         addBubbleReveal('luna', `<div class="checkbox-wrapper" style="margin: 4px 0;"><input type="checkbox" id="${cbId}" checked disabled /><div class="checkmark" style="opacity:1; transform:scale(1);"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg></div><span class="label" style="color:var(--dim); font-size:0.85rem;">${step}</span></div>`);
-                    }, (i + 1) * 2500); // 2 second delay between visual steps
+                    }, (i + 1) * 2500);
                 });
             }
             
-            const pathInjection = cfg.messagingMode === 'invisible' 
-                ? "" 
-                : "sys.path.insert(0, os.path.abspath('tools'))";
-            const pyCode = `import sys, os\n${pathInjection}\nimport luna_message\nprint(luna_message.send_message({'platform': '${args[0].trim()}', 'receiver': '${args[1].trim()}', 'message_text': '''${args.slice(2).join('|').trim()}'''}), flush=True)`;
-            const res = await window.electronAPI.executeCode('python', pyCode);
-            // Tell the LLM it's complete regardless of errors to prevent infinite loops
-            feedback.push(`[SYSTEM_MSG]: Automation sequence completed for ${args[1]}. Output: ${res.output}`);
+            let res;
+            if (['instagram', 'insta', 'ig'].includes(platform)) {
+                // Use browser_tool.py (Playwright Chromium) — fresh process, no REPL cache
+                res = await window.electronAPI.runPython('browser_tool.py', ['send_dm', platform, receiver, textMsg]);
+            } else {
+                // WhatsApp/Discord/Telegram use luna_message.py via runPython (fresh process)
+                res = await window.electronAPI.runPython('luna_message.py', [platform, receiver, textMsg]);
+            }
+            feedback.push(`[SYSTEM_MSG]: Automation sequence completed for ${receiver}. Output: ${JSON.stringify(res)}`);
         }
     },
     'WRITE_FILE': async (match, feedback) => {
@@ -3200,6 +3365,9 @@ function getToolFriendlyName(tag, query) {
         case 'CAPTURE_SCREEN': return `Analyzing screen...`;
         case 'BROWSER_ANALYZE': return `Analyzing webpage...`;
         case 'EXECUTE_PYTHON': return `Running internal script...`;
+        case 'WEB_READ': return `Reading webpage content...`;
+        case 'WEB_EXTRACT': return `Extracting data from webpage...`;
+        case 'WEB_DOM_MAP': return `Mapping interactive elements...`;
         default:
             const formatted = tag.replace(/_/g, ' ').toLowerCase();
             return `Executing ${formatted}...`;
@@ -3239,7 +3407,12 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
         let reconstructed = "";
         
         if (text !== jsonStr) {
-            reconstructed += text.replace(jsonStr, '').trim() + '\n';
+            let leftOver = text.replace(jsonStr, '').trim();
+            // Remove markdown code block markers
+            leftOver = leftOver.replace(/^```json/i, '').replace(/```$/, '').replace(/^```/, '').trim();
+            if (leftOver) {
+                reconstructed += leftOver + '\n';
+            }
         }
 
         if (parsed.thought && !reconstructed.includes('<thought>') && !reconstructed.includes('<think>')) {
@@ -3261,8 +3434,8 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
     let feedback = [];
     
     try {
-        // Regex for tags with 1 parameter
-        const tagRegex = /\[(RUN_CMD|CMD|OPEN_TERMINAL|READ_FILE|SILENT_SEARCH|WEB_SEARCH|WEB_GO|OPEN_APP|DESKTOP_TYPE|DESKTOP_PRESS|WEB_CLICK|WEB_PRESS|LIST_DIR|DELETE_FILE|CREATE_DIR|MOUSE_MOVE|KEY_HOTKEY|CLIPBOARD_WRITE|NOTIFY|FILE_INFO|SEND_MESSAGE):([\s\S]*?)\]/gi;
+        // Regex for tags with 1 parameter (exclude 2-parameter tools)
+        const tagRegex = /\[(?!WRITE_FILE|RENAME_FILE|SEARCH_FILES|DOWNLOAD_FILE|DESKTOP_SEARCH)([A-Z_]+):([\s\S]*?)\]/gi;
         let match;
         while ((match = tagRegex.exec(text)) !== null) {
             const tag = match[1].toUpperCase();
@@ -3278,6 +3451,8 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
                 await AI_COMMAND_REGISTRY[tag](shiftedMatch, feedback);
             } else if (tag === 'RUN_CMD') {
                 if (AI_COMMAND_REGISTRY['CMD']) await AI_COMMAND_REGISTRY['CMD'](shiftedMatch, feedback);
+            } else {
+                feedback.push(`[SYSTEM_ERROR]: The tool '${tag}' is not recognized. Please use one of the valid tools from the system prompt.`);
             }
             
             const cb = document.getElementById(cbId);
@@ -3285,7 +3460,7 @@ async function parseAICommands(text, depth = 0, failCount = 0) {
         }
 
         // Regex for tags with 2 parameters (separated by |)
-        const tag2Regex = /\[(WRITE_FILE|RENAME_FILE|SEARCH_FILES|DOWNLOAD_FILE):([\s\S]*?)\|([\s\S]*?)\]/gi;
+        const tag2Regex = /\[(WRITE_FILE|RENAME_FILE|SEARCH_FILES|DOWNLOAD_FILE|DESKTOP_SEARCH):([\s\S]*?)\|([\s\S]*?)\]/gi;
         while ((match = tag2Regex.exec(text)) !== null) {
             const tag = match[1].toUpperCase();
             const shiftedMatch = [match[0], match[2], match[3]];

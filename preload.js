@@ -26,6 +26,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   // LLM Routing APIs
   startLLMStream: (payload) => ipcRenderer.invoke('llm-generate-stream', payload),
   onLLMToken: (callback) => { ipcRenderer.removeAllListeners('llm-token'); ipcRenderer.on('llm-token', (e, chunk) => callback(chunk)); },
+  onLLMLog: (callback) => { ipcRenderer.removeAllListeners('llm-log'); ipcRenderer.on('llm-log', (e, log) => callback(log)); },
   onLLMEnd: (callback) => { ipcRenderer.removeAllListeners('llm-end'); ipcRenderer.on('llm-end', () => callback()); },
   onLLMError: (callback) => { ipcRenderer.removeAllListeners('llm-error'); ipcRenderer.on('llm-error', (e, err) => callback(err)); },
 

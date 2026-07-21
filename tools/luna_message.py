@@ -23,15 +23,41 @@ def send_message(data):
             return "Message queued to WhatsApp."
             
         elif platform in ['instagram', 'insta', 'ig']:
-            # Use IG.ME links to open direct message directly!
-            url = f"https://ig.me/m/{receiver}"
-            os.system(f'start "" "{url}"')
-            time.sleep(9) # Wait longer for IG.ME redirect and React SPA to fully mount
-            pyautogui.write(message, interval=0.01)
-            time.sleep(0.5)
-            pyautogui.press('enter')
-            return f"Message typed into Instagram for {receiver}."
+            from playwright.sync_api import sync_playwright
+            import os
             
+            with sync_playwright() as p:
+                chrome_path = p.chromium.executable_path
+                user_data = os.path.join(os.environ.get('APPDATA', ''), 'LunaAI', 'AutomationProfile')
+                
+                context = p.chromium.launch_persistent_context(
+                    user_data_dir=user_data,
+                    executable_path=chrome_path,
+                    headless=False,
+                    no_viewport=True,
+                    args=["--window-size=800,600"]
+                )
+                
+                page = context.pages[0] if len(context.pages) > 0 else context.new_page()
+                page.goto(f"https://ig.me/m/{receiver}")
+                
+                # Wait for redirect and React app to load
+                time.sleep(6)
+                
+                try:
+                    if page.locator("input[name='username']").is_visible():
+                        context.close()
+                        return f"Error: Login required on Automation Browser to send message to {receiver}."
+                    
+                    page.fill("div[role='textbox']", message)
+                    time.sleep(1)
+                    page.keyboard.press("Enter")
+                    time.sleep(2)
+                    context.close()
+                    return f"Message sent to Instagram user {receiver} via Playwright."
+                except Exception as inner_e:
+                    context.close()
+                    return f"Failed to automate Instagram via Playwright: {str(inner_e)}"
         elif platform in ['discord']:
             os.system(f'start discord://')
             time.sleep(4)

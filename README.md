@@ -31,12 +31,49 @@ We want to issue a mesmerizing thank you to **GPT-5.6**.
 
 The breathtaking speed, logic parsing, and UI implementation of Luna v3.0 were made possible through an incredible, seamless collaboration with GPT-5.6. The intelligence and capability of this model allowed us to architect this system in record time. We dedicate this version entirely to you.
 
+## 🤖 Core Functions
+Luna comes packed with advanced automation capabilities powered by Python and Playwright:
+- **Instant App Search & Control**: Say *"open opera and search for X"*, and Luna will instantly launch the app and physically type your query and hit Enter, completely bypassing the AI for zero-latency execution.
+- **Deep Web Automation (Selenium/Playwright)**: Luna can visually parse the DOM to click buttons, extract text, and read webpages. 
+- **YouTube Fullscreen Cinema**: Say *"play X on youtube in fullscreen"* and Luna will find the video, auto-click it, and trigger native JavaScript to instantly snap it to true fullscreen.
+- **Social Media Assistant**: Go to Instagram profiles or send DMs autonomously.
+- **Background Silent Search**: Fetch factual data via the DuckDuckGo API silently in the background.
+
 ---
-### Installation
-```bash
-git clone https://github.com/prashanth-karanam/Luna-V3.git
-cd Luna-V3
-npm install
-# Setup python venv and install tools/requirements.txt
-npm run boot
-```
+
+### 🛠 Installation (Step-by-Step)
+
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/prashanth-karanam/Luna-V3.git
+   cd Luna-V3
+   ```
+
+2. **Install Node Dependencies**
+   Make sure you have Node.js installed, then run:
+   ```bash
+   npm install
+   ```
+
+3. **Install Python Dependencies**
+   Luna requires Python 3.8+ for her automation backend. It is highly recommended to use a virtual environment:
+   ```bash
+   # Create and activate virtual environment
+   python -m venv venv
+   # Windows:
+   .\venv\Scripts\activate
+   # Mac/Linux:
+   source venv/bin/activate
+   
+   # Install required Python packages
+   pip install -r tools/requirements.txt
+   
+   # Install Playwright browsers (Required for web automation!)
+   playwright install chromium
+   ```
+
+4. **Boot Luna OS**
+   Start the application:
+   ```bash
+   npm run boot
+   ```

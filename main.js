@@ -52,6 +52,7 @@ ipcMain.handle('llm-generate-stream', async (event, payload) => {
   try {
     await generateStream(payload, {
       onToken: (chunk) => event.sender.send('llm-token', chunk),
+      onLog: (msg) => event.sender.send('llm-log', msg),
       onError: (err) => event.sender.send('llm-error', err.message),
       onEnd: () => event.sender.send('llm-end')
     });
