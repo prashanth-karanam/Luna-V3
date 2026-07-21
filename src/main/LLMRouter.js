@@ -108,7 +108,7 @@ async function tryOllama(messages, systemPrompt, config, callbacks) {
 }
 
 async function tryGemini(messages, systemPrompt, config, callbacks) {
-  const model = config.geminiModel || 'gemini-1.5-flash';
+  const model = config.geminiModel || 'gemini-3.1-flash-lite';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse&key=${config.geminiKey}`;
   
   const contents = [];
@@ -282,6 +282,10 @@ async function tryHuggingFace(messages, systemPrompt, config, callbacks) {
   });
 }
 
+let poolIndexGemini = 0;
+let poolIndexOpenAI = 0;
+let poolIndexGroq = 0;
+
 async function generateStream(payload, callbacks) {
   const { messages, systemPrompt, config } = payload;
   
@@ -312,21 +316,74 @@ async function generateStream(payload, callbacks) {
         console.log(msg);
         if (callbacks.onLog) callbacks.onLog(msg);
         success = await tryOllama(formattedMessages, systemPrompt, config, callbacks);
-      } else if (provider === 'gemini' && config.geminiKey) {
-        const msg = `[LUNA-ROUTER] Sending request to Gemini (${config.geminiModel || 'gemini-1.5-flash'})...`;
-        console.log(msg);
-        if (callbacks.onLog) callbacks.onLog(msg);
-        success = await tryGemini(formattedMessages, systemPrompt, config, callbacks);
-      } else if (provider === 'openai' && config.openaiKey) {
-        const msg = `[LUNA-ROUTER] Sending request to OpenAI (${config.openaiModel || 'gpt-4o-mini'})...`;
-        console.log(msg);
-        if (callbacks.onLog) callbacks.onLog(msg);
-        success = await tryOpenAI(formattedMessages, systemPrompt, config, callbacks);
-      } else if (provider === 'groq' && config.groqKey) {
-        const msg = `[LUNA-ROUTER] Sending request to Groq (${config.groqModel || 'llama-3.1-8b-instant'})...`;
-        console.log(msg);
-        if (callbacks.onLog) callbacks.onLog(msg);
-        success = await tryGroq(formattedMessages, systemPrompt, config, callbacks);
+      } else if (provider === 'gemini') {
+        const geminiPool = (config.geminiKeys ? config.geminiKeys.split(/[,\n]/) : [config.geminiKey]).map(k => sanitizeKey(k)).filter(k => k);
+        const startIdx = poolIndexGemini % geminiPool.length || 0;
+        for (let offset = 0; offset < geminiPool.length; offset++) {
+          let i = (startIdx + offset) % geminiPool.length;
+          config.geminiKey = geminiPool[i];
+          try {
+            const msg = `[LUNA-ROUTER] Sending request to Gemini (${config.geminiModel || 'gemini-2.5-flash'}) [Key ${i+1}/${geminiPool.length}]...`;
+            console.log(msg);
+            if (callbacks.onLog) callbacks.onLog(msg);
+            success = await tryGemini(formattedMessages, systemPrompt, config, callbacks);
+            if (success) { poolIndexGemini = i; break; }
+          } catch (e) {
+            if ((e.message.includes('429') || e.message.includes('400') || e.message.includes('401')) && offset < geminiPool.length - 1) {
+              const msg = `[LLMRouter] Gemini Key ${i+1} failed (${e.message}). Rotating to next...`;
+              console.warn(msg);
+              if (callbacks.onLog) callbacks.onLog(msg);
+            } else {
+              throw e; // Throw to the outer loop to trigger fallback to Groq/OpenAI
+            }
+          }
+        }
+      } else if (provider === 'openai') {
+        const openaiPool = (config.openaiKeys ? config.openaiKeys.split(/[,\n]/) : [config.openaiKey]).map(k => sanitizeKey(k)).filter(k => k);
+        const startIdx = poolIndexOpenAI % openaiPool.length || 0;
+        for (let offset = 0; offset < openaiPool.length; offset++) {
+          let i = (startIdx + offset) % openaiPool.length;
+          config.openaiKey = openaiPool[i];
+          try {
+            const msg = `[LUNA-ROUTER] Sending request to OpenAI (${config.openaiModel || 'gpt-4o-mini'}) [Key ${i+1}/${openaiPool.length}]...`;
+            console.log(msg);
+            if (callbacks.onLog) callbacks.onLog(msg);
+            success = await tryOpenAI(formattedMessages, systemPrompt, config, callbacks);
+            if (success) { poolIndexOpenAI = i; break; }
+          } catch (e) {
+            if ((e.message.includes('429') || e.message.includes('401')) && offset < openaiPool.length - 1) {
+              const msg = `[LLMRouter] OpenAI Key ${i+1} failed (${e.message}). Rotating to next...`;
+              console.warn(msg);
+              if (callbacks.onLog) callbacks.onLog(msg);
+            } else {
+              throw e;
+            }
+          }
+        }
+      } else if (provider === 'groq') {
+        // Find all Groq keys even if they span multiple lines or are separated by spaces/newlines
+        let groqPool = config.groqKeys ? (config.groqKeys.match(/gsk_[a-zA-Z0-9_-]+/g) || config.groqKeys.split(/[,\n]/)) : [config.groqKey];
+        groqPool = groqPool.map(k => sanitizeKey(k)).filter(k => k);
+        const startIdx = poolIndexGroq % groqPool.length || 0;
+        for (let offset = 0; offset < groqPool.length; offset++) {
+          let i = (startIdx + offset) % groqPool.length;
+          config.groqKey = groqPool[i];
+          try {
+            const msg = `[LUNA-ROUTER] Sending request to Groq (${config.groqModel || 'llama-3.1-8b-instant'}) [Key ${i+1}/${groqPool.length}]...`;
+            console.log(msg);
+            if (callbacks.onLog) callbacks.onLog(msg);
+            success = await tryGroq(formattedMessages, systemPrompt, config, callbacks);
+            if (success) { poolIndexGroq = i; break; }
+          } catch (e) {
+            if ((e.message.includes('429') || e.message.includes('401')) && offset < groqPool.length - 1) {
+              const msg = `[LLMRouter] Groq Key ${i+1} failed (${e.message}). Rotating to next...`;
+              console.warn(msg);
+              if (callbacks.onLog) callbacks.onLog(msg);
+            } else {
+              throw e;
+            }
+          }
+        }
       } else if (provider === 'openrouter' && config.openRouterKey) {
         const msg = `[LUNA-ROUTER] Sending request to OpenRouter (${config.openRouterModel})...`;
         console.log(msg);

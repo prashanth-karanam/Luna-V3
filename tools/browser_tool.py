@@ -29,6 +29,10 @@ import time
 import os
 import subprocess
 
+# FORCE UTF-8 OUTPUT FOR EMOJIS ON WINDOWS
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
+
 # ─── Playwright Browser Management ─────────────────────────────────────
 
 def get_browser_config():

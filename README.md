@@ -41,6 +41,11 @@ Luna comes packed with advanced automation capabilities powered by Python and Pl
 
 ---
 
+### 🔑 Note on API Keys
+Luna OS supports multiple LLM providers (Gemini, OpenAI, Groq, OpenRouter). We highly recommend using a **Google Gemini API Key** as your primary engine, as it offers a generous free tier for developers with top-tier performance. Make no mistakes, it's the best free option available!
+
+---
+
 ### 🛠 Installation (Step-by-Step)
 
 1. **Clone the Repository**

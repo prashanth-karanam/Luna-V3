@@ -187,6 +187,9 @@ const cfg = {
   geminiKey:    localStorage.getItem('luna_geminiKey')    || '',
   geminiKeys:   localStorage.getItem('luna_geminiKeys')   || '',
   geminiModel:  (function(){ let m = localStorage.getItem('luna_geminiModel') || 'gemini-2.5-flash'; if(m.includes('1.5')) return 'gemini-2.5-flash'; if(m==='gemini-3.1-pro') return 'gemini-3.1-pro-preview'; if(m==='gemini-3-flash') return 'gemini-3-flash-preview'; return m; })(),
+  openaiKey:    localStorage.getItem('luna_openaiKey')    || '',
+  openaiKeys:   localStorage.getItem('luna_openaiKeys')   || '',
+  openaiModel:  localStorage.getItem('luna_openaiModel')  || 'gpt-4o-mini',
   groqKey:      localStorage.getItem('luna_groqKey')      || '',
   groqKeys:     localStorage.getItem('luna_groqKeys')     || '',
   groqModel:    (localStorage.getItem('luna_groqModel') || 'llama-3.1-8b-instant').replace('llama3-8b-8192', 'llama-3.1-8b-instant'),
@@ -941,10 +944,14 @@ If the user asks you to search, open apps, or do anything on their computer, you
   let priority = [];
   const engine = cfg.engine === 'auto' ? (cfg.openaiKey ? 'openai' : (cfg.geminiKey ? 'gemini' : 'groq')) : cfg.engine;
   if (!requireCloudAction) priority.push('ollama');
-  if (engine === 'openai') priority.push('openai', 'gemini', 'groq');
-  else if (engine === 'gemini') priority.push('gemini', 'groq', 'openai');
-  else if (engine === 'groq') priority.push('groq', 'gemini', 'openai');
-  else priority.push('gemini', 'openai', 'groq');
+  
+  priority.push(engine); // Always push the user-selected engine first!
+  
+  if (engine === 'openai') priority.push('gemini', 'groq');
+  else if (engine === 'gemini') priority.push('groq', 'openai');
+  else if (engine === 'groq') priority.push('gemini', 'openai');
+  else priority.push('gemini', 'openai', 'groq'); // Append standard fallbacks for any other engine
+  
   priority = [...new Set(priority)];
 
   let cleanHistory = [];
@@ -985,7 +992,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
     
     window.electronAPI.onLLMError((err) => {
       stopBrainActivity();
-      resolve(`❗ Engine Error: ${err}`);
+      resolve(`❗ Engine Error: ${err}\n\n*(Note: Please check if your selected model is available on the present provider!)*`);
     });
     
     window.electronAPI.onLLMEnd(async () => {
@@ -1002,7 +1009,7 @@ If the user asks you to search, open apps, or do anything on their computer, you
     
     window.electronAPI.startLLMStream(payload).catch((err) => {
       stopBrainActivity();
-      resolve(`❗ Engine Error: ${err.message}`);
+      resolve(`❗ Engine Error: ${err.message}\n\n*(Note: Please check if your selected model is available on the present provider!)*`);
     });
   });
 }
@@ -1228,16 +1235,45 @@ if ($('ghostLoginBtn')) {
 }
 
 if ($('saveSettings')) $('saveSettings').addEventListener('click', () => {
+  let mKey = $('masterApiKey') ? $('masterApiKey').value.trim() : '';
+  let mPool = $('masterApiPool') ? $('masterApiPool').value.trim() : '';
+  let mModel = $('masterApiModel') ? $('masterApiModel').value : '';
+
   cfg.autoPool = $('autoApiPool') ? $('autoApiPool').value.trim() : '';
+  
+  // Read individual advanced fields first
   cfg.openaiKey = $('openaiKey') ? $('openaiKey').value.trim() : '';
   cfg.openaiKeys = $('openaiPool') ? $('openaiPool').value.trim() : '';
   cfg.openaiModel = $('openaiModel') ? $('openaiModel').value : '';
+  
   cfg.geminiKey = $('geminiKeyInput') ? $('geminiKeyInput').value.trim() : ($('geminiKey') ? $('geminiKey').value.trim() : '');
   cfg.geminiKeys = $('geminiPoolInput') ? $('geminiPoolInput').value.trim() : ($('geminiKeys') ? $('geminiKeys').value.trim() : '');
   cfg.geminiModel = $('geminiModelInput') ? $('geminiModelInput').value : ($('geminiModel') ? $('geminiModel').value : '');
+  
   cfg.groqKey = $('groqKeyInput') ? $('groqKeyInput').value.trim() : ($('groqKey') ? $('groqKey').value.trim() : '');
   cfg.groqKeys = $('groqPoolInput') ? $('groqPoolInput').value.trim() : ($('groqKeys') ? $('groqKeys').value.trim() : '');
   cfg.groqModel = $('groqModelInput') ? $('groqModelInput').value : ($('groqModel') ? $('groqModel').value : '');
+
+  // If Master API Key is provided, auto-detect and overwrite the specific provider
+  if (mKey) {
+    if (mKey.startsWith('sk-')) {
+      cfg.openaiKey = mKey;
+      if (mPool) cfg.openaiKeys = mPool;
+      if (mModel) cfg.openaiModel = mModel;
+      $('activeEngine').value = 'openai';
+    } else if (mKey.startsWith('gsk_')) {
+      cfg.groqKey = mKey;
+      if (mPool) cfg.groqKeys = mPool;
+      if (mModel) cfg.groqModel = mModel;
+      $('activeEngine').value = 'groq';
+    } else if (mKey.startsWith('AIza') || mKey.startsWith('AQ.')) {
+      cfg.geminiKey = mKey;
+      if (mPool) cfg.geminiKeys = mPool;
+      if (mModel) cfg.geminiModel = mModel;
+      $('activeEngine').value = 'gemini';
+    }
+  }
+
   if($('routerModelInput')) cfg.routerModel = $('routerModelInput').value.trim() || 'phi3:mini';
   if($('heavyModelInput')) cfg.heavyModel = $('heavyModelInput').value.trim() || 'phi3:mini';
   cfg.engine = $('activeEngine').value; 
@@ -1255,9 +1291,12 @@ if ($('saveSettings')) $('saveSettings').addEventListener('click', () => {
   localStorage.setItem('luna_geminiIdx', -1);
   localStorage.setItem('luna_groqIdx', -1);
   
+  if ($('masterApiKey')) $('masterApiKey').value = '';
+  if ($('masterApiPool')) $('masterApiPool').value = '';
+  
   applyWallpaperBlur();
   closeSettings();
-  showToast('⚙️ Settings saved. API Keys reset.');
+  showToast('⚙️ Settings saved. API Keys updated.');
 });
 
 // History Event Listeners
