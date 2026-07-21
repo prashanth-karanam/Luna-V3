@@ -12,8 +12,12 @@ app.commandLine.appendSwitch('disable-http-cache');
 app.commandLine.appendSwitch('disk-cache-size', '1');
 app.commandLine.appendSwitch('no-sandbox');
 app.commandLine.appendSwitch('log-level', '3'); // Suppress chunked_data_pipe network spam
-app.disableHardwareAcceleration();
-
+// Force RTX / Discrete GPU for maximum performance on UI
+app.commandLine.appendSwitch('force-discrete-gpu', '1');
+app.commandLine.appendSwitch('enable-gpu-rasterization');
+app.commandLine.appendSwitch('enable-zero-copy');
+app.commandLine.appendSwitch('ignore-gpu-blocklist');
+app.commandLine.appendSwitch('enable-features', 'CanvasOopRasterization,Vulkan');
 const { initVisionManager } = require('./src/main/VisionManager');
 const { generateStream } = require('./src/main/LLMRouter');
 
