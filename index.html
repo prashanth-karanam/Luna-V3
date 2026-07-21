@@ -1123,7 +1123,14 @@ if (btn && status) {
             </div>
             <div class="setting-group">
               <label>Model ID</label>
-              <input type="text" id="openRouterModelInput" placeholder="anthropic/claude-3.5-sonnet" class="cyber-input" />
+                            <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                <select id="openRouterModelInput" class="cyber-select" style="flex:1;">
+                  <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+                  <option value="openai/gpt-4o">GPT-4o</option>
+                  <option value="meta-llama/llama-3.1-405b-instruct">Llama 3.1 405B</option>
+                </select>
+                <button id="fetchOrModelsBtn" class="cyber-btn" style="padding: 0 10px; font-size: 0.7rem;">Fetch</button>
+              </div>
             </div>
           </div>
 
@@ -1135,7 +1142,14 @@ if (btn && status) {
             </div>
             <div class="setting-group">
               <label>Model ID</label>
-              <input type="text" id="hfModelInput" placeholder="mistralai/Mistral-7B-Instruct-v0.2" class="cyber-input" />
+                            <div style="display: flex; gap: 5px; margin-bottom: 5px;">
+                <select id="hfModelInput" class="cyber-select" style="flex:1;">
+                  <option value="mistralai/Mistral-7B-Instruct-v0.2">Mistral 7B Instruct</option>
+                  <option value="meta-llama/Meta-Llama-3-8B-Instruct">Llama 3 8B Instruct</option>
+                  <option value="HuggingFaceH4/zephyr-7b-beta">Zephyr 7B Beta</option>
+                </select>
+                <button id="fetchHfModelsBtn" class="cyber-btn" style="padding: 0 10px; font-size: 0.7rem;">Fetch</button>
+              </div>
             </div>
           </div>
           </div>
@@ -1473,6 +1487,7 @@ if (btn && status) {
   </script>
 </body>
 </html>
+
 
 
 

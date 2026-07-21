@@ -4369,3 +4369,74 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+
+document.addEventListener('DOMContentLoaded', () => {
+    // OpenRouter Auto-Extraction
+    const fetchOrBtn = document.getElementById('fetchOrModelsBtn');
+    if (fetchOrBtn) {
+        fetchOrBtn.addEventListener('click', async () => {
+            const key = document.getElementById('openRouterKeyInput')?.value.trim();
+            if (!key) { alert('Please enter an OpenRouter API key first!'); return; }
+            
+            fetchOrBtn.textContent = '...';
+            try {
+                const res = await fetch('https://openrouter.ai/api/v1/models', {
+                    headers: { 'Authorization': Bearer  }
+                });
+                if (!res.ok) throw new Error('Failed to fetch OpenRouter models');
+                const data = await res.json();
+                
+                const select = document.getElementById('openRouterModelInput');
+                if (select && data.data) {
+                    select.innerHTML = '';
+                    data.data.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id;
+                        opt.textContent = m.name || m.id;
+                        select.appendChild(opt);
+                    });
+                    // Restore previously selected if any
+                    if (window.cfg && window.cfg.openRouterModel) select.value = window.cfg.openRouterModel;
+                }
+            } catch (e) {
+                alert(e.message);
+            } finally {
+                fetchOrBtn.textContent = 'Fetch';
+            }
+        });
+    }
+
+    // HuggingFace Auto-Extraction
+    const fetchHfBtn = document.getElementById('fetchHfModelsBtn');
+    if (fetchHfBtn) {
+        fetchHfBtn.addEventListener('click', async () => {
+            const key = document.getElementById('hfKeyInput')?.value.trim();
+            if (!key) { alert('Please enter a HuggingFace Access Token first!'); return; }
+            
+            fetchHfBtn.textContent = '...';
+            try {
+                const res = await fetch('https://huggingface.co/api/models?pipeline_tag=text-generation&sort=likes&direction=-1&limit=50', {
+                    headers: { 'Authorization': Bearer  }
+                });
+                if (!res.ok) throw new Error('Failed to fetch HuggingFace models');
+                const data = await res.json();
+                
+                const select = document.getElementById('hfModelInput');
+                if (select && data.length) {
+                    select.innerHTML = '';
+                    data.forEach(m => {
+                        const opt = document.createElement('option');
+                        opt.value = m.id;
+                        opt.textContent = m.id;
+                        select.appendChild(opt);
+                    });
+                    if (window.cfg && window.cfg.hfModel) select.value = window.cfg.hfModel;
+                }
+            } catch (e) {
+                alert(e.message);
+            } finally {
+                fetchHfBtn.textContent = 'Fetch';
+            }
+        });
+    }
+});
