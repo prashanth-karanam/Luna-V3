@@ -1,4 +1,4 @@
-async function processStream(readableStream, callbacks, parseFn) {
+﻿async function processStream(readableStream, callbacks, parseFn) {
   const reader = readableStream.getReader();
   const decoder = new TextDecoder('utf-8');
   let buffer = '';
@@ -204,6 +204,84 @@ async function tryGroq(messages, systemPrompt, config, callbacks) {
   });
 }
 
+async function tryOpenRouter(messages, systemPrompt, config, callbacks) {
+  const url = 'https://openrouter.ai/api/v1/chat/completions';
+  const formatted = [];
+  if (systemPrompt) formatted.push({ role: 'system', content: systemPrompt });
+  messages.forEach(m => formatted.push({ role: m.role === 'model' || m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
+
+  const body = {
+    model: config.openRouterModel || 'anthropic/claude-3.5-sonnet',
+    messages: formatted,
+    temperature: 0.7,
+    stream: true
+  };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json', 
+      'Authorization': `Bearer ${config.openRouterKey}`,
+      'HTTP-Referer': 'http://localhost:3000',
+      'X-Title': 'Luna OS'
+    },
+    body: JSON.stringify(body),
+    signal: controller.signal
+  });
+  
+  clearTimeout(timeout);
+
+  if (!response.ok) throw new Error(`OpenRouter returned status ${response.status}`);
+
+  return await processSSE(response.body, callbacks, (data) => {
+    return data?.choices?.[0]?.delta?.content || '';
+  });
+}
+
+async function tryHuggingFace(messages, systemPrompt, config, callbacks) {
+  // HuggingFace Inference API (Serverless) using text-generation or chat-completion format
+  // We'll use the chat/completions route available on many models on HF
+  const url = `https://api-inference.huggingface.co/models/${config.hfModel || 'mistralai/Mistral-7B-Instruct-v0.2'}/v1/chat/completions`;
+  const formatted = [];
+  if (systemPrompt) formatted.push({ role: 'system', content: systemPrompt });
+  messages.forEach(m => formatted.push({ role: m.role === 'model' || m.role === 'assistant' ? 'assistant' : 'user', content: m.content }));
+
+  const body = {
+    model: config.hfModel || 'mistralai/Mistral-7B-Instruct-v0.2',
+    messages: formatted,
+    temperature: 0.7,
+    stream: true,
+    max_tokens: 1500
+  };
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 60000);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 
+      'Content-Type': 'application/json', 
+      'Authorization': `Bearer ${config.hfKey}` 
+    },
+    body: JSON.stringify(body),
+    signal: controller.signal
+  });
+  
+  clearTimeout(timeout);
+
+  if (!response.ok) {
+    const txt = await response.text();
+    throw new Error(`HuggingFace returned status ${response.status}: ${txt}`);
+  }
+
+  return await processSSE(response.body, callbacks, (data) => {
+    return data?.choices?.[0]?.delta?.content || '';
+  });
+}
+
 async function generateStream(payload, callbacks) {
   const { messages, systemPrompt, config } = payload;
   const priority = config.priority || ['ollama', 'gemini', 'openai', 'groq'];
@@ -232,6 +310,12 @@ async function generateStream(payload, callbacks) {
       } else if (provider === 'groq' && config.groqKey) {
         console.log(`[LUNA-ROUTER] Sending request to Groq (${config.groqModel || 'llama-3.1-8b-instant'})...`);
         success = await tryGroq(formattedMessages, systemPrompt, config, callbacks);
+      } else if (provider === 'openrouter' && config.openRouterKey) {
+        console.log(`[LUNA-ROUTER] Sending request to OpenRouter (${config.openRouterModel})...`);
+        success = await tryOpenRouter(formattedMessages, systemPrompt, config, callbacks);
+      } else if (provider === 'huggingface' && config.hfKey) {
+        console.log(`[LUNA-ROUTER] Sending request to HuggingFace (${config.hfModel})...`);
+        success = await tryHuggingFace(formattedMessages, systemPrompt, config, callbacks);
       }
 
       if (success) {
@@ -253,3 +337,4 @@ async function generateStream(payload, callbacks) {
 module.exports = {
   generateStream
 };
+
