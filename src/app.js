@@ -1,4 +1,4 @@
-
+﻿
 async function fetchWithTimeout(resource, options = {}) {
     const { timeout = 120000 } = options;
     const controller = new AbortController();
@@ -4367,3 +4367,4 @@ window.sendAiDebugMessage = async function() {
 document.addEventListener('DOMContentLoaded', () => {
     setTimeout(renderGrindProblems, 1000);
 });
+
