@@ -31,7 +31,7 @@ function initPythonTools(appRoot) {
   function runPythonTool(event, scriptName, args) {
     return new Promise((resolve) => {
       const scriptPath = path.join(appRoot, 'tools', scriptName);
-      const pythonProc = spawn('python', [scriptPath, ...args]);
+      const pythonProc = spawn('python', [scriptPath, ...args], { env: { ...process.env, PYTHONIOENCODING: 'utf8' } });
       
       let finalOutput = '';
       

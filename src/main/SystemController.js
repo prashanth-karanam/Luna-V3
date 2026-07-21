@@ -95,7 +95,7 @@ function initSystemController() {
       const scriptPath = path.join(__dirname, '..', '..', 'tools', 'browser_tool.py');
       return new Promise((resolve) => {
         const { spawn } = require('child_process');
-        const proc = spawn('python', [scriptPath, 'open', url]);
+        const proc = spawn('python', [scriptPath, 'open', url], { env: { ...process.env, PYTHONIOENCODING: 'utf8' } });
         let stdout = '';
         proc.stdout.on('data', (d) => stdout += d.toString());
         proc.stderr.on('data', (d) => console.error('[browser_tool]', d.toString()));

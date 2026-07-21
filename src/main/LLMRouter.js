@@ -284,6 +284,15 @@ async function tryHuggingFace(messages, systemPrompt, config, callbacks) {
 
 async function generateStream(payload, callbacks) {
   const { messages, systemPrompt, config } = payload;
+  
+  // Sanitize all API keys to remove accidental spaces or newlines (prevents fetch Header errors)
+  const sanitizeKey = (k) => k ? k.replace(/\s+/g, '') : k;
+  config.geminiKey = sanitizeKey(config.geminiKey);
+  config.openaiKey = sanitizeKey(config.openaiKey);
+  config.groqKey = sanitizeKey(config.groqKey);
+  config.openRouterKey = sanitizeKey(config.openRouterKey);
+  config.hfKey = sanitizeKey(config.hfKey);
+
   const priority = config.priority || ['ollama', 'gemini', 'openai', 'groq'];
   
   const formattedMessages = messages.map(m => ({
