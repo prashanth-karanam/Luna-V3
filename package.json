@@ -23,6 +23,13 @@
     "directories": {
       "output": "dist"
     },
+    "files": [
+      "**/*",
+      "!venv${/*}",
+      "!scratch${/*}",
+      "!.git${/*}",
+      "!dist${/*}"
+    ],
     "win": {
       "target": "portable",
       "icon": "icon.ico"
