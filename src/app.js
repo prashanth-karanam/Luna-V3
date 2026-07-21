@@ -3994,6 +3994,13 @@ window.switchMode = function(mode) {
     if (chatPane) chatPane.style.display = 'none';
     if (voicePanel) voicePanel.classList.add('hidden');
     if (consolePanel) consolePanel.classList.add('hidden');
+    
+    // Toggle layout view class on body
+    if (mode === 'console') {
+        document.body.classList.add('console-active');
+    } else {
+        document.body.classList.remove('console-active');
+    }
 
     // Update toggle buttons
     ['modeChat','modeVoice','modeConsole'].forEach(id => {
@@ -4084,16 +4091,21 @@ window.updatePreview = function() {
     const iframe = document.getElementById('livePreview');
     if (!iframe) return;
     
-    const combined = html.replace('</head>', `<style>${css}</style></head>`).replace('</body>', `<script>${js}<\/script></body>`);
-    
-    try {
-        const doc = iframe.contentDocument || iframe.contentWindow.document;
-        doc.open();
-        doc.write(combined);
-        doc.close();
-    } catch(e) {
-        iframe.srcdoc = combined;
+    let combined = html;
+    if (html.includes('</head>')) {
+        combined = combined.replace('</head>', `<style>${css}</style></head>`);
+    } else {
+        combined = combined + `<style>${css}</style>`;
     }
+
+    if (combined.includes('</body>')) {
+        combined = combined.replace('</body>', `<script>${js}<\/script></body>`);
+    } else {
+        combined = combined + `<script>${js}<\/script>`;
+    }
+    
+    // Using srcdoc is highly reliable and avoids layout timing issues from doc.write when reopening hidden iframes
+    iframe.srcdoc = combined;
 };
 
 // ═══════════════════════════════════════════════════════════════
